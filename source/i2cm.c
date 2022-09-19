@@ -14,6 +14,22 @@
 /*******************************************************************************
  * CONSTANT AND MACRO DEFINITIONS USING #DEFINE
  ******************************************************************************/
+/* I2C	*	Signal	*	MK64 Pin	*	MUX		*	Kinetis Pin		*/
+// 0		SCL			PTE24			5			Si
+// 0		SCL			PTB0			2			No
+// 0		SCL			PTB2			2			Si
+// 0		SCL			PTD2			7			Si
+// 0		SDA			PTE25			5			Si
+// 0		SDA			PTB1			2			No
+// 0		SDA			PTB3			2			Si
+// 0		SDA			PTD3			7			Si
+// 1		SCL			PTE1			6			No
+// 1		SCL			PTC10			2			Si
+// 1		SDA			PTE0			6			No
+// 1		SDA			PTC11			2			Si
+// 2		SCL			PTA12			5			No
+// 2		SCL			PTA14			5			No
+// 2		SDA			PTA13			5			No
 
 
 /*******************************************************************************
