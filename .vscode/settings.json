@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "mk64f12.h": "c"
-    }
+		"mk64f12.h": "c",
+		"i2cm.h": "c"
+	}
 }
