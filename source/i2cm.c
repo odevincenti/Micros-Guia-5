@@ -37,7 +37,7 @@
 /*******************************************************************************
  * STATIC VARIABLES AND CONST VARIABLES WITH FILE LEVEL SCOPE
  ******************************************************************************/
-
+static bool I2C_init[] = {false, false, false};
 
 /*******************************************************************************
  *******************************************************************************
@@ -46,13 +46,27 @@
  ******************************************************************************/
 
 void I2C_Init(uint8_t id, i2c_config_t config){
-	I2C_Type* i2c_ptr = I2C_ptrs[id];
-	i2c_enable_clock_gating(id);
-	i2c_disable(i2c_ptr);
+	
+	if(!I2C_init[id] && id < I2C_N){
 
+		I2C_Type* i2c_ptr = I2C_ptrs[id];
+		i2c_enable_clock_gating(id);
+		i2c_enable_pins(id);
+		i2c_disable(i2c_ptr);
+		i2c_set_baud_rate(i2c_ptr);
 
+		// // Habilito interrupciones
+		// i2c_enable_pin_IRQ(id);
+		// i2c_enable_IRQ(id, i2c_ptr);
+
+		i2c_enable(i2c_ptr);
+		I2C_init[id] = true;
+	}
 
 }
+
+
+
 
 
 
