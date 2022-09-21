@@ -113,7 +113,7 @@ void i2c_enable_start_stop_IRQ(I2C_Type* i2c_ptr);
 
 bool i2c_did_bus_start(I2C_Type* i2c_ptr);
 
-void i2c_did_bus_stop(I2C_Type* i2c_ptr);
+bool i2c_did_bus_stop(I2C_Type* i2c_ptr);
 
 void i2c_disable_start_stop_IRQ(I2C_Type* i2c_ptr);
 

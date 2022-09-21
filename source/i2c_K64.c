@@ -131,8 +131,8 @@ const pin_t I2C_SCL[I2C_N] = {I2C0_SCL, I2C1_SCL, I2C2_SCL};
 const pin_t I2C_SDA[I2C_N] = {I2C0_SDA, I2C1_SDA, I2C2_SDA};
 const uint8_t I2C_SCL_MUX[I2C_N] = {I2C0_SCL_MUX, I2C1_SCL_MUX, I2C2_SCL_MUX};
 const uint8_t I2C_SDA_MUX[I2C_N] = {I2C0_SDA_MUX, I2C1_SDA_MUX, I2C2_SDA_MUX};
-const PORT_Type * PORT_ptr[] = {PORTA_BASE, PORTB_BASE, PORTC_BASE, PORTD_BASE, PORTE_BASE};
-const uint8_t PORT_SCG[] = {SIM_SCGC5_PORTA_MASK, SIM_SCGC5_PORTB_MASK, SIM_SCGC5_PORTC_MASK, SIM_SCGC5_PORTD_MASK, SIM_SCGC5_PORTE_MASK};
+const PORT_Type * PORT_ptr[] = {PORTA, PORTB, PORTC, PORTD, PORTE};
+const uint16_t PORT_SCG[] = {SIM_SCGC5_PORTA_MASK, SIM_SCGC5_PORTB_MASK, SIM_SCGC5_PORTC_MASK, SIM_SCGC5_PORTD_MASK, SIM_SCGC5_PORTE_MASK};
 const uint8_t I2C_NVIC[] = {I2C0_IRQn, I2C1_IRQn, I2C2_IRQn};
 
 /*******************************************************************************
@@ -202,7 +202,7 @@ void i2c_enable(I2C_Type* i2c_ptr){
 
 void i2c_enable_IRQ(uint8_t id, I2C_Type* i2c_ptr){
 	i2c_ptr->C1 |= I2C_C1_IICIE_MASK;
-	i2c_enable_pin_IRQ(id);
+	//i2c_enable_pin_IRQ(id);
 	i2c_ptr->S |= I2C_S_IICIF_MASK;
 	i2c_enable_start_stop_IRQ(i2c_ptr);
 	NVIC_EnableIRQ(I2C_NVIC[id]);
@@ -344,7 +344,7 @@ bool i2c_did_bus_start(I2C_Type* i2c_ptr){
 	}
 }
 
-void i2c_did_bus_stop(I2C_Type* i2c_ptr){
+bool i2c_did_bus_stop(I2C_Type* i2c_ptr){
 	if ( (i2c_ptr->FLT & I2C_FLT_STOPF_MASK) == I2C_FLT_STOPF_MASK ){
 		i2c_ptr->FLT |= I2C_FLT_STOPF_MASK;				// Clear STOPF bit by writing 1 into it
 		return true;
