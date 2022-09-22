@@ -73,39 +73,6 @@
 #define MUL 0x1		// mul = 2
 #define ICR 0x2B	// SCL divider = 512 (I2C divider and hold values table - Reference Manual 51.4.1.10)
 
-/**
- * @brief Get bit from register
- * 
- * @param x: Register to read bit from
- * @param n: Number of bit to read
- */
-#define GET_BIT(x, n)			(((x) >> (n)) & 1 ) 
-
-/**
- * @brief Set specified bit in register
- * 
- * @param x: Register to set bit in
- * @param n: Number of bit to set
- */
-#define SET_BIT(x, n)   		((x) | ( 1 << (n)))
-
-/**
- * @brief Clear specified bit in register
- * 
- * @param x: Register to clear bit in
- * @param n: Number of bit to clear
- */
-#define CLEAR_BIT(x, n) 		((x) & ~( 1 << (n)))
-
-/**
- * @brief Changes a bit in a register to the one specified
- * 
- * @param x: Register in which to set bit
- * @param b: Bit value to set
- * @param n: Number of bit to set
- */
-#define CHANGE_BIT(x, b, n)		((b) ? SET_BIT(x, n) : CLEAR_BIT(x, n))
-
 /*******************************************************************************
  * ENUMERATIONS AND STRUCTURES AND TYPEDEFS
  ******************************************************************************/
@@ -151,24 +118,25 @@ void i2c_enable_pins(uint8_t id){
 	SIM->SCGC5 |= PORT_SCG[PIN2PORT(scl)];
 	SIM->SCGC5 |= PORT_SCG[PIN2PORT(sda)];
 
-	// Enable pin
-	scl_port_ptr->PCR[PIN2NUM(scl)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SCL_MUX[id]);		// Select mux & open drain mode
-	sda_port_ptr->PCR[PIN2NUM(sda)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SDA_MUX[id]);
+	// Enable pin					  Open Drain		Mux							    Pull Enable		   Pullup
+	scl_port_ptr->PCR[PIN2NUM(scl)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SCL_MUX[id]) | PORT_PCR_PE_MASK | PORT_PCR_PS_SHIFT;
+	sda_port_ptr->PCR[PIN2NUM(sda)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SDA_MUX[id]) | PORT_PCR_PE_MASK | PORT_PCR_PS_SHIFT;
 
 }
 
-// void i2c_enable_pin_IRQ(uint8_t id){
-// 	pin_t scl = I2C_SCL[id];
-// 	pin_t sda = I2C_SDA[id];
-// 	PORT_Type* scl_port_ptr = PORT_ptr[PIN2PORT(scl)];
-// 	PORT_Type* sda_port_ptr = PORT_ptr[PIN2PORT(scl)];
+void i2c_enable_pin_IRQ(uint8_t id){
+	pin_t scl = I2C_SCL[id];
+	pin_t sda = I2C_SDA[id];
+	PORT_Type* scl_port_ptr = PORT_ptr[PIN2PORT(scl)];
+	PORT_Type* sda_port_ptr = PORT_ptr[PIN2PORT(scl)];
 
-// 	scl_port_ptr->PCR[PIN2NUM(scl)] |= PORT_PCR_ISF_MASK;	
-// 	sda_port_ptr->PCR[PIN2NUM(sda)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SDA_MUX[id]);
+	scl_port_ptr->PCR[PIN2NUM(scl)] |= PORT_PCR_ISF_MASK;	
+	scl_port_ptr->PCR[PIN2NUM(scl)] &= ~PORT_PCR_IRQC_MASK;	
+	scl_port_ptr->PCR[PIN2NUM(scl)] |= PORT_PCR_IRQC(0);	
 
-// 	PORT_PCR_IRQC(0) | PORT_PCR_ISF_MASK
+	sda_port_ptr->PCR[PIN2NUM(sda)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SDA_MUX[id]);
 
-// }
+}
 
 
 void i2c_enable_clock_gating(uint8_t id){
@@ -196,7 +164,7 @@ void i2c_disable(I2C_Type* i2c_ptr){
 }
 
 void i2c_enable(I2C_Type* i2c_ptr){
-	i2c_ptr->S |= I2C_S_TCF_MASK;
+	// i2c_ptr->S |= I2C_S_TCF_MASK;	TCF is read-only
 	i2c_ptr->C1 |= I2C_C1_IICEN_MASK;
 }
 
@@ -204,11 +172,11 @@ void i2c_enable_IRQ(uint8_t id, I2C_Type* i2c_ptr){
 	i2c_ptr->C1 |= I2C_C1_IICIE_MASK;
 	//i2c_enable_pin_IRQ(id);
 	i2c_ptr->S |= I2C_S_IICIF_MASK;
-	i2c_enable_start_stop_IRQ(i2c_ptr);
+	i2c_enable_start_stop_IRQ(i2c_ptr);		
 	NVIC_EnableIRQ(I2C_NVIC[id]);
 }
 
-void i2c_transmit_ack(I2C_Type* i2c_ptr){
+void i2c_send_ack_signal(I2C_Type* i2c_ptr){
 	i2c_ptr->C1 &= ~I2C_C1_TXAK_MASK;
 }
 
@@ -368,13 +336,12 @@ void i2c_set_10_bit_address(I2C_Type* i2c_ptr){
 }
 
 // Only available for 10 bit address mode
-void i2c_set_upper_3_address_bits(I2C_Type* i2c_ptr, uint8_t b7, uint8_t b8, uint8_t b9){
+void i2c_set_upper_3_address_bits(I2C_Type* i2c_ptr, uint8_t add){
 #ifdef I2C_SAFE_MODE
 	if( (i2c_ptr->C2 & I2C_C2_ADEXT_MASK) == I2C_C2_ADEXT_MASK ){
 #endif
-		i2c_ptr->C2 = CHANGE_BIT(i2c_ptr->C2, b9, 2);		// Set bit 9
-		i2c_ptr->C2 = CHANGE_BIT(i2c_ptr->C2, b8, 1);		// Set bit 8
-		i2c_ptr->C2 = CHANGE_BIT(i2c_ptr->C2, b7, 0);		// Set bit 7
+		i2c_ptr->C2 &= ~I2C_C2_AD_MASK;
+		i2c_ptr->C2 |= I2C_C2_AD(add);
 #ifdef I2C_SAFE_MODE
 	}
 #endif
@@ -393,10 +360,8 @@ void i2c_set_filter_factor(I2C_Type* i2c_ptr, uint8_t factor){
 #ifdef I2C_SAFE_MODE
 	if (factor <= I2C_FLT_FLT_MASK){
 #endif
-		i2c_ptr->FLT = CHANGE_BIT(i2c_ptr->FLT, GET_BIT(factor, 3), 3);
-		i2c_ptr->FLT = CHANGE_BIT(i2c_ptr->FLT, GET_BIT(factor, 2), 2);
-		i2c_ptr->FLT = CHANGE_BIT(i2c_ptr->FLT, GET_BIT(factor, 1), 1);
-		i2c_ptr->FLT = CHANGE_BIT(i2c_ptr->FLT, GET_BIT(factor, 0), 0);
+		i2c_ptr->FLT &= ~I2C_FLT_FLT_MASK;	
+		i2c_ptr->FLT |= I2C_FLT_FLT(factor);	
 #ifdef I2C_SAFE_MODE
 	}
 #endif

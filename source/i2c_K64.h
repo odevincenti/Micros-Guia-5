@@ -72,19 +72,21 @@ void i2c_enable(I2C_Type* i2c_ptr);
 
 void i2c_enable_IRQ(uint8_t id, I2C_Type* i2c_ptr);
 
-void i2c_transmit_ack(I2C_Type* i2c_ptr);
-
 void i2c_set_baud_rate(I2C_Type* i2c_ptr);//, uint32_t baud_rate);
 
 void i2c_set_TX(I2C_Type* i2c_ptr);
 
 void i2c_set_RX(I2C_Type* i2c_ptr);
 
+bool i2c_repeated_start(I2C_Type* i2c_ptr);
+
 bool i2c_send_start_signal(I2C_Type* i2c_ptr);
 
 bool i2c_send_stop_signal(I2C_Type* i2c_ptr);
 
-bool i2c_repeated_start(I2C_Type* i2c_ptr);
+void i2c_send_ack_signal(I2C_Type* i2c_ptr);
+
+bool i2c_was_ack(I2C_Type* i2c_ptr);
 
 void i2c_write_to_data_register(I2C_Type* i2c_ptr, uint8_t data);
 
@@ -95,8 +97,6 @@ bool i2c_is_transfer_complete(I2C_Type* i2c_ptr);
 // bool i2c_set_no_transfer(I2C_Type* i2c_ptr);
 
 bool i2c_is_bus_busy(I2C_Type* i2c_ptr);
-
-bool i2c_was_ack(I2C_Type* i2c_ptr);
 
 bool i2c_was_arbitration_lost(I2C_Type* i2c_ptr);
 
@@ -122,7 +122,7 @@ void i2c_set_7_bit_address(I2C_Type* i2c_ptr);
 void i2c_set_10_bit_address(I2C_Type* i2c_ptr);
 
 // Only available for 10 bit address mode
-void i2c_set_upper_3_address_bits(I2C_Type* i2c_ptr, uint8_t b7, uint8_t b8, uint8_t b9);
+void i2c_set_upper_3_address_bits(I2C_Type* i2c_ptr, uint8_t add);
 
 void i2c_set_normal_drive_mode(I2C_Type* i2c_ptr);
 
