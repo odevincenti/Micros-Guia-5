@@ -26,10 +26,11 @@
  * ENUMERATIONS AND STRUCTURES AND TYPEDEFS
  ******************************************************************************/
 typedef struct {
-	bool 		master;		// true for master, false for slave
-	uint32_t 	buad_rate;	
-	bool		adress_7_bit;
-
+	uint8_t instruction;
+	uint8_t address;
+	bool mode;				// true for read, false for write
+	uint8_t ptr;			// ptr to read to or to write from
+	uint8_t count;			// amount of bytes
 } i2c_config_t;
 
 /*******************************************************************************
@@ -39,7 +40,7 @@ typedef struct {
 /*******************************************************************************
  * FUNCTION PROTOTYPES WITH GLOBAL SCOPE
  ******************************************************************************/
-void I2C_Init(uint8_t id, i2c_config_t config);
+void I2C_Init(uint8_t id);
 
 /*******************************************************************************
  ******************************************************************************/
