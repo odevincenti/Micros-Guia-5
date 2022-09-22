@@ -25,13 +25,16 @@
 /*******************************************************************************
  * ENUMERATIONS AND STRUCTURES AND TYPEDEFS
  ******************************************************************************/
+
+enum {I2C_START, I2C_RSTART, I2C_STOP};
+
 typedef struct {
-	uint8_t instruction;
-	uint8_t address;
 	bool mode;				// true for read, false for write
-	uint8_t ptr;			// ptr to read to or to write from
+	uint8_t address;		// slave address
+	uint8_t* ptr;			// ptr to read to or to write from
 	uint8_t count;			// amount of bytes
-} i2c_config_t;
+	bool next_rsta;				// true if repeated start
+} i2c_transaction_t;
 
 /*******************************************************************************
  * VARIABLE PROTOTYPES WITH GLOBAL SCOPE
