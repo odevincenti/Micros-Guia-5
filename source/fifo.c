@@ -183,12 +183,12 @@ bool FIFO_PullFromBuffer(fifo_id_t id, fifo_value_t* data_ptr){
 
         FIFO_Array[id].is_buffer_full = !FIFO_BUFFER_FULL;      // Buffer is now not full
 
-        if (FIFO_Array[id].tail == FIFO_Array[id].head){ 
-            r = FIFO_BUFFER_EMPTY;                              // Return buffer now empty state
+        // if (FIFO_Array[id].tail == FIFO_Array[id].head){ 
+        //     r = FIFO_BUFFER_EMPTY;                              // Return buffer now empty state
 #ifdef FIFO_VERBOSE
             printf("fifo verbose - FIFO %u buffer empty\n", id);
 #endif
-        }    
+        // }    
 
     }
 
