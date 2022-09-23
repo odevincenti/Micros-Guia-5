@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="com.pemicro.debug.gdbjtag.pne.launchConfigurationType">
-<stringAttribute key="com.crt.ctrlcenter.OFSemuDetails" value="PEMicro62EF0E0C"/>
-<booleanAttribute key="com.crt.ctrlcenter.saveState" value="true"/>
-<stringAttribute key="com.crt.ctrlcenter.serialNumber" value="USB1 - OpenSDA (62EF0E0C)"/>
+<stringAttribute key="com.crt.ctrlcenter.OFSemuDetails" value="PEMicro96143E71"/>
+<stringAttribute key="com.crt.ctrlcenter.serialNumber" value="USB1 - OpenSDA (96143E71)"/>
 <stringAttribute key="com.nxp.mcuxpresso.ide.probe.manufacturer" value="P&amp;E Microcomputer Systems"/>
-<stringAttribute key="com.nxp.mcuxpresso.ide.probe.name" value="USB1 - OpenSDA (62EF0E0C)"/>
+<stringAttribute key="com.nxp.mcuxpresso.ide.probe.name" value="USB1 - OpenSDA (96143E71)"/>
 <stringAttribute key="com.nxp.mcuxpresso.ide.probe.type" value="USB1"/>
 <listAttribute key="com.pemicro.debug.gdbjtag.pne.ELVES"/>
 <intAttribute key="com.pemicro.debug.gdbjtag.pne.NUMBER_ELVES" value="0"/>
@@ -87,8 +86,8 @@
 <booleanAttribute key="org.eclipse.cdt.dsf.gdb.NON_STOP" value="false"/>
 <booleanAttribute key="org.eclipse.cdt.dsf.gdb.UPDATE_THREADLIST_ON_SUSPEND" value="false"/>
 <intAttribute key="org.eclipse.cdt.launch.ATTR_BUILD_BEFORE_LAUNCH_ATTR" value="2"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Debug\Blink.axf"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="Blink"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Debug\Guia 5.axf"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="Guia 5"/>
 <booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="false"/>
 <stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="com.crt.advproject.config.exe.debug.1284265667"/>
 <mapAttribute key="org.eclipse.debug.core.preferred_launchers">

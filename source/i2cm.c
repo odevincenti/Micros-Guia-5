@@ -11,6 +11,7 @@
 #include "fifo.h"
 #include "i2c_K64.h"
 #include "i2cm.h"
+#include "hardware.h"
 
 /*******************************************************************************
  * CONSTANT AND MACRO DEFINITIONS USING #DEFINE
@@ -36,6 +37,10 @@ void I2C_start_transaction(uint8_t id);
 bool I2C_push_transaction(uint8_t id, i2c_transaction_t* trans);
 i2c_transaction_t* I2C_pull_transaction(uint8_t id);
 void I2C_reset(uint8_t id);
+__ISR__ I2C0_IRQHandler(void);
+__ISR__ I2C1_IRQHandler(void);
+__ISR__ I2C2_IRQHandler(void);
+
 
 /*******************************************************************************
  * ROM CONST VARIABLES WITH FILE LEVEL SCOPE
@@ -65,22 +70,26 @@ static i2c_transaction_t i2c_empty_trans = {.mode = true, .address = ERR_ADDRESS
  ******************************************************************************/
 
 void I2C_Init(uint8_t id){
-	
+
 	if(!I2C_init[id] && id < I2C_N){
 
 		// Request FIFO
 		I2C_write_fifo[id] = FIFO_GetId();
 		I2C_read_fifo[id] = FIFO_GetId();
 
+		i2c_trans_head[id] = &i2c_trans[id][0];
+		i2c_trans_tail[id] = &i2c_trans[id][I2C_MAX_TRANS_BUFFER];
+
 		// Init I2C
 		I2C_Type* i2c_ptr = I2C_ptrs[id];
 		i2c_enable_clock_gating(id);
 		i2c_enable_pins(id);
+		//set_ISR_callback(id, &I2C_ISR);
 		i2c_disable(i2c_ptr);
 		i2c_set_baud_rate(i2c_ptr);
 
 		// Habilito interrupciones
-		i2c_enable_pin_IRQ(id);
+		// i2c_enable_pin_IRQ(id);
 		i2c_enable_IRQ(id, i2c_ptr);
 
 		i2c_enable(i2c_ptr);
@@ -89,7 +98,11 @@ void I2C_Init(uint8_t id){
 }
 
 bool I2C_NewTransaction(uint8_t id, i2c_transaction_t* trans){
-	return I2C_push_transaction(id, trans);
+	bool b = I2C_push_transaction(id, trans);
+	if (!i2c_is_bus_busy(I2C_ptrs[id]) && I2C_state[id] == I2C_IDLE){
+		I2C_start_transaction(id);
+	}
+	return b;
 }
 
 bool I2C_IsIDTaken(uint8_t id){
@@ -208,8 +221,8 @@ void I2C_start_transaction(uint8_t id){
 					FIFO_WriteToBuffer(I2C_write_fifo[id], trans->ptr, trans->count);		//Save data to transmit.
 				// }
 			}
-			i2c_send_start_signal(I2C_ptrs[id]);		// Start
 			i2c_set_TX(I2C_ptrs[id]);					// TX mode
+			i2c_send_start_signal(I2C_ptrs[id]);		// Start
 			i2c_write_to_data_register(I2C_ptrs[id], (trans->address << 1) | trans->mode);	// Write address
 			I2C_state[id] = (trans->mode == I2C_READ) ? I2C_FAKE_READ : I2C_WRITE;		// Set next state
 		// }
@@ -232,7 +245,7 @@ void I2C_start_transaction(uint8_t id){
 }
 
 bool I2C_push_transaction(uint8_t id, i2c_transaction_t* trans){
-	if ( i2c_trans_head[id] + 1 != i2c_trans_tail[id]){			// If buffer not empty
+	if ( i2c_trans_head[id] + 1 != i2c_trans_tail[id]){			// If buffer not full
 		*(i2c_trans_head[id]) = *trans;							// Push 
 		if ( i2c_trans_head[id] + 1 != &i2c_trans[id][0] + I2C_MAX_TRANS_BUFFER){	// If not at the end:
 			i2c_trans_head[id]++;							// Inc head
@@ -248,7 +261,7 @@ bool I2C_push_transaction(uint8_t id, i2c_transaction_t* trans){
 i2c_transaction_t* I2C_pull_transaction(uint8_t id){
 	i2c_transaction_t* r;
 	if ( i2c_trans_head[id] != i2c_trans_tail[id] + 1){
-		if ( i2c_trans_tail[id] + 1 != &i2c_trans[id][0] + I2C_MAX_TRANS_BUFFER){	// If not at the end:
+		if ( i2c_trans_tail[id] != &i2c_trans[id][0] + I2C_MAX_TRANS_BUFFER){	// If not at the end:
 			i2c_trans_tail[id]++;							// Inc tail
 		} else {											// If at the end:
 			i2c_trans_tail[id] = &i2c_trans[id][0];	// Reset tail
@@ -265,17 +278,19 @@ void I2C_reset(uint8_t id){
 	i2c_disable(i2c_ptr);
 	i2c_disable_start_stop_IRQ(i2c_ptr);
 	i2c_disable_interrupt_flag(i2c_ptr);
-	i2c_disable_pin_IRQ(id);
-}
-
-void I2C0_IRQHandler(void) {
-	I2C_ISR(I2C0_ID);
-}
-void I2C1_IRQHandler(void) {
-	I2C_ISR(I2C1_ID);
-}
-void I2C2_IRQHandler(void) {
-	I2C_ISR(I2C2_ID);
+	// i2c_disable_pin_IRQ(id);
 }
 
 /******************************************************************************/
+
+__ISR__ I2C0_IRQHandler(void) {
+    I2C_ISR(0);
+}
+
+__ISR__ I2C1_IRQHandler(void) {
+    I2C_ISR(1);
+}
+
+__ISR__ I2C2_IRQHandler(void) {
+    I2C_ISR(2);
+}

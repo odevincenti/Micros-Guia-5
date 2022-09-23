@@ -37,9 +37,9 @@
 /******************* PINS ********************/
 
 // I2C0
-#define I2C0_SCL		I2C0_SCL1_PIN
+#define I2C0_SCL		I2C0_SCL0_PIN
 #define I2C0_SCL_MUX	2
-#define I2C0_SDA		I2C0_SDA1_PIN
+#define I2C0_SDA		I2C0_SDA0_PIN
 #define I2C0_SDA_MUX	2
 
 // I2C1
@@ -54,8 +54,8 @@
 #define I2C2_SDA		I2C2_SDA0_PIN
 #define I2C2_SDA_MUX	5
 
-#define MUL 0x1		// mul = 2
-#define ICR 0x2B	// SCL divider = 512 (I2C divider and hold values table - Reference Manual 51.4.1.10)
+#define MUL 0x0		// mul = 1
+#define ICR 0x1A	// SCL divider = 26 (I2C divider and hold values table - Reference Manual 51.4.1.10)
 
 /*******************************************************************************
  * ENUMERATIONS AND STRUCTURES AND TYPEDEFS
@@ -82,9 +82,12 @@ const pin_t I2C_SCL[I2C_N] = {I2C0_SCL, I2C1_SCL, I2C2_SCL};
 const pin_t I2C_SDA[I2C_N] = {I2C0_SDA, I2C1_SDA, I2C2_SDA};
 const uint8_t I2C_SCL_MUX[I2C_N] = {I2C0_SCL_MUX, I2C1_SCL_MUX, I2C2_SCL_MUX};
 const uint8_t I2C_SDA_MUX[I2C_N] = {I2C0_SDA_MUX, I2C1_SDA_MUX, I2C2_SDA_MUX};
-const PORT_Type * PORT_ptr[] = {PORTA, PORTB, PORTC, PORTD, PORTE};
+PORT_Type * PORT_ptr[] = {PORTA, PORTB, PORTC, PORTD, PORTE};
 const uint16_t PORT_SCG[] = {SIM_SCGC5_PORTA_MASK, SIM_SCGC5_PORTB_MASK, SIM_SCGC5_PORTC_MASK, SIM_SCGC5_PORTD_MASK, SIM_SCGC5_PORTE_MASK};
 const uint8_t I2C_NVIC[] = {I2C0_IRQn, I2C1_IRQn, I2C2_IRQn};
+// I2C_callback_t* I2C0_callback;
+// I2C_callback_t* I2C1_callback;
+// I2C_callback_t* I2C2_callback;
 
 /*******************************************************************************
  *******************************************************************************
@@ -103,37 +106,35 @@ void i2c_enable_pins(uint8_t id){
 	SIM->SCGC5 |= PORT_SCG[PIN2PORT(sda)];
 
 	// Enable pin					  Open Drain		Mux							    Pull Enable		   Pullup
-	scl_port_ptr->PCR[PIN2NUM(scl)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SCL_MUX[id]) | PORT_PCR_PE_MASK | PORT_PCR_PS_SHIFT;
-	sda_port_ptr->PCR[PIN2NUM(sda)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SDA_MUX[id]) | PORT_PCR_PE_MASK | PORT_PCR_PS_SHIFT;
+	scl_port_ptr->PCR[PIN2NUM(scl)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SCL_MUX[id]) | PORT_PCR_PE_MASK | PORT_PCR_PS_MASK;
+	sda_port_ptr->PCR[PIN2NUM(sda)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SDA_MUX[id]) | PORT_PCR_PE_MASK | PORT_PCR_PS_MASK;
 
 }
 
-void i2c_enable_pin_IRQ(uint8_t id){
+// void i2c_enable_pin_IRQ(uint8_t id){
 	
-	pin_t scl = I2C_SCL[id];
-	pin_t sda = I2C_SDA[id];
-	PORT_Type* scl_port_ptr = PORT_ptr[PIN2PORT(scl)];
-	PORT_Type* sda_port_ptr = PORT_ptr[PIN2PORT(scl)];
+// 	pin_t scl = I2C_SCL[id];
+// 	pin_t sda = I2C_SDA[id];
+// 	PORT_Type* scl_port_ptr = PORT_ptr[PIN2PORT(scl)];
+// 	PORT_Type* sda_port_ptr = PORT_ptr[PIN2PORT(scl)];
 
-	scl_port_ptr->PCR[PIN2NUM(scl)] |= PORT_PCR_ISF_MASK;	
-	scl_port_ptr->PCR[PIN2NUM(scl)] &= ~PORT_PCR_IRQC_MASK;	
-	scl_port_ptr->PCR[PIN2NUM(scl)] |= PORT_PCR_IRQC(0);	
+// 	// Enable ISF
+// 	scl_port_ptr->PCR[PIN2NUM(sda)] |= PORT_PCR_ISF_MASK;	
+// 	scl_port_ptr->PCR[PIN2NUM(sda)] &= ~PORT_PCR_IRQC_MASK;	
+// 	scl_port_ptr->PCR[PIN2NUM(sda)] |= PORT_PCR_IRQC(0);	
+// }
 
-	sda_port_ptr->PCR[PIN2NUM(sda)] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SDA_MUX[id]);
+// void i2c_disable_pin_IRQ(uint8_t id){
 
-}
+// 	pin_t scl = I2C_SCL[id];
+// 	pin_t sda = I2C_SDA[id];
+// 	PORT_Type* scl_port_ptr = PORT_ptr[PIN2PORT(scl)];
+// 	PORT_Type* sda_port_ptr = PORT_ptr[PIN2PORT(scl)];
 
-void i2c_disable_pin_IRQ(uint8_t id){
-
-	pin_t scl = I2C_SCL[id];
-	pin_t sda = I2C_SDA[id];
-	PORT_Type* scl_port_ptr = PORT_ptr[PIN2PORT(scl)];
-	PORT_Type* sda_port_ptr = PORT_ptr[PIN2PORT(scl)];
-
-	scl_port_ptr->PCR[PIN2NUM(scl)] &= ~PORT_PCR_ISF_MASK;	
-	scl_port_ptr->PCR[PIN2NUM(scl)] &= ~PORT_PCR_IRQC_MASK;	
+// 	scl_port_ptr->PCR[PIN2NUM(scl)] &= ~PORT_PCR_ISF_MASK;	
+// 	scl_port_ptr->PCR[PIN2NUM(scl)] &= ~PORT_PCR_IRQC_MASK;	
 	
-}
+// }
 
 void i2c_enable_clock_gating(uint8_t id){
 	switch(id)
@@ -390,9 +391,40 @@ void i2c_set_filter_factor(I2C_Type* i2c_ptr, uint8_t factor){
 #endif
 }
 
+// void set_ISR_callback(uint8_t id, I2C_callback_t* callback) {
+// 	switch (id) {
+// 	case 0:
+// 		I2C0_callback = callback;
+// 		break;
+	
+// 	case 1:
+// 		I2C1_callback = callback;
+// 		break;
+	
+// 	case 2:
+// 		I2C2_callback = callback;
+// 		break;
+	
+// 	default:
+// 		break;
+// 	}
+// }
+
 /*******************************************************************************
  *******************************************************************************
                         LOCAL FUNCTION DEFINITIONS
  *******************************************************************************
  ******************************************************************************/
 /******************************************************************************/
+
+// __ISR__ I2C0_IRQHandler(void) {
+//     (*I2C0_callback)(0);
+// }
+
+// __ISR__ I2C1_IRQHandler(void) {
+//     (*I2C1_callback)(1);
+// }
+
+// __ISR__ I2C2_IRQHandler(void) {
+//     (*I2C2_callback)(2);
+// }
