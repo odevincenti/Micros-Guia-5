@@ -33,7 +33,7 @@ enum {I2C_WRITE, I2C_READ, I2C_FAKE_READ, I2C_IDLE};
 void I2C_ISR(uint8_t id);
 void I2C_fsm(uint8_t id);
 void I2C_start_transaction(uint8_t id);
-bool I2C_push_transaction(uint8_t id, i2c_transaction_t trans);
+bool I2C_push_transaction(uint8_t id, i2c_transaction_t* trans);
 i2c_transaction_t* I2C_pull_transaction(uint8_t id);
 void I2C_reset(uint8_t id);
 
@@ -88,7 +88,7 @@ void I2C_Init(uint8_t id){
 	}
 }
 
-bool I2C_NewTransaction(uint8_t id, i2c_transaction_t trans){
+bool I2C_NewTransaction(uint8_t id, i2c_transaction_t* trans){
 	return I2C_push_transaction(id, trans);
 }
 
@@ -231,9 +231,9 @@ void I2C_start_transaction(uint8_t id){
 	}
 }
 
-bool I2C_push_transaction(uint8_t id, i2c_transaction_t trans){
+bool I2C_push_transaction(uint8_t id, i2c_transaction_t* trans){
 	if ( i2c_trans_head[id] + 1 != i2c_trans_tail[id]){			// If buffer not empty
-		*(i2c_trans_head[id]) = trans;							// Push 
+		*(i2c_trans_head[id]) = *trans;							// Push 
 		if ( i2c_trans_head[id] + 1 != &i2c_trans[id][0] + I2C_MAX_TRANS_BUFFER){	// If not at the end:
 			i2c_trans_head[id]++;							// Inc head
 		} else {											// If at the end:

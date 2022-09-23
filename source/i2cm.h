@@ -19,8 +19,8 @@
 /*******************************************************************************
  * CONSTANT AND MACRO DEFINITIONS USING #DEFINE
  ******************************************************************************/
-
-
+#define I2C_WRITE_MODE	0
+#define I2C_READ_MODE	1
 
 /*******************************************************************************
  * ENUMERATIONS AND STRUCTURES AND TYPEDEFS
@@ -46,7 +46,7 @@ typedef struct {
  ******************************************************************************/
 void I2C_Init(uint8_t id);
 
-bool I2C_NewTransaction(uint8_t id, i2c_transaction_t trans);
+bool I2C_NewTransaction(uint8_t id, i2c_transaction_t* trans);
 
 bool I2C_IsIDTaken(uint8_t id);
 
