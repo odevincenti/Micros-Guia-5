@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
+#include <stddef.h>
 
 /*******************************************************************************
  * CONSTANT AND MACRO DEFINITIONS USING #DEFINE

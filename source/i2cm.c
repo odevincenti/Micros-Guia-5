@@ -40,7 +40,6 @@ void I2C_reset(uint8_t id);
 /*******************************************************************************
  * ROM CONST VARIABLES WITH FILE LEVEL SCOPE
  ******************************************************************************/
-const i2c_transaction_t i2c_empty_trans = {.mode = true, .address = ERR_ADDRESS, .ptr = 0, .count = 0, .next_rsta = false};
 
 /*******************************************************************************
  * STATIC VARIABLES AND CONST VARIABLES WITH FILE LEVEL SCOPE
@@ -57,6 +56,7 @@ static uint8_t I2C_read_fifo[] = {FIFO_INVALID_ID, FIFO_INVALID_ID, FIFO_INVALID
 static i2c_transaction_t i2c_trans[I2C_N][I2C_MAX_TRANS_BUFFER];
 static i2c_transaction_t* i2c_trans_head[I2C_N];
 static i2c_transaction_t* i2c_trans_tail[I2C_N];
+static i2c_transaction_t i2c_empty_trans = {.mode = true, .address = ERR_ADDRESS, .ptr = 0, .count = 0, .next_rsta = false};
 
 /*******************************************************************************
  *******************************************************************************
@@ -80,8 +80,8 @@ void I2C_Init(uint8_t id){
 		i2c_set_baud_rate(i2c_ptr);
 
 		// Habilito interrupciones
-		i2c_enable_pin_ISR(id);
-		i2c_enable_ISR(id, i2c_ptr);
+		i2c_enable_pin_IRQ(id);
+		i2c_enable_IRQ(id, i2c_ptr);
 
 		i2c_enable(i2c_ptr);
 		I2C_init[id] = true;
@@ -141,17 +141,17 @@ void I2C_fsm(uint8_t id){
 				i2c_write_to_data_register(I2C_ptrs[id], data);		// Write to data
 				if(!(--i2c_trans_tail[id]->count)){					// If count is 0 -> Done writing:
 					if (!i2c_trans_tail[id]->next_rsta){			// If not repeated start
-						i2c_send_stop_signal(I2C_write_fifo[id]);		// Stop
+						i2c_send_stop_signal(I2C_ptrs[id]);			// Stop
 					}
 					I2C_state[id] = I2C_IDLE;
 				}
 			} else {											// If write buffer empty:
-				i2c_send_stop_signal(I2C_write_fifo[id]);		// Stop
+				i2c_send_stop_signal(I2C_ptrs[id]);				// Stop
 				I2C_error_reg[id] = I2C_ERR_EMPTY;				// Reg error
 				I2C_state[id] = I2C_IDLE;
 			}											
 		} else {											// If NACK:
-			i2c_send_stop_signal(I2C_write_fifo[id]);		// Stop
+			i2c_send_stop_signal(I2C_ptrs[id]);				// Stop
 			I2C_error_reg[id] = I2C_ERR_NACK;				// Reg error
 			I2C_state[id] = I2C_IDLE;
 		}
@@ -163,12 +163,12 @@ void I2C_fsm(uint8_t id){
 		if(!FIFO_PushToBuffer(I2C_read_fifo[id], i2c_read_data_register(I2C_ptrs[id]))){	// Push to buffer, if push ok
 			if(!(--i2c_trans_tail[id]->count)){					// If count is 0 -> Done reading:
 				if (!i2c_trans_tail[id]->next_rsta){			// If not repeated start
-					i2c_send_stop_signal(I2C_write_fifo[id]);		// Stop
+					i2c_send_stop_signal(I2C_ptrs[id]);			// Stop
 				}
 				I2C_state[id] = I2C_IDLE;
 			}
 		} else {											// If buffer full
-			i2c_send_stop_signal(I2C_write_fifo[id]);		// Stop
+			i2c_send_stop_signal(I2C_ptrs[id]);				// Stop
 			I2C_error_reg[id] = I2C_ERR_FULL;				// Reg error
 			I2C_state[id] = I2C_IDLE;
 		} 
@@ -183,7 +183,7 @@ void I2C_fsm(uint8_t id){
 
 	case I2C_IDLE:
 		if (i2c_trans_tail[id] + 1 != i2c_trans_head[id]){
-			I2C_StartTransaction(id);
+			I2C_start_transaction(id);
 		}
 		break;
 
@@ -263,7 +263,7 @@ i2c_transaction_t* I2C_pull_transaction(uint8_t id){
 void I2C_reset(uint8_t id){
 	I2C_Type* i2c_ptr = I2C_ptrs[id];
 	i2c_disable(i2c_ptr);
-	i2c_disable_start_stop_ISR(i2c_ptr);
+	i2c_disable_start_stop_IRQ(i2c_ptr);
 	i2c_disable_interrupt_flag(i2c_ptr);
 	i2c_disable_pin_IRQ(id);
 }
