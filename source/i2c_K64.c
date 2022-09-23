@@ -36,22 +36,6 @@
 
 /******************* PINS ********************/
 
-// #define I2C0_SCL0_PIN		PTE24
-// #define I2C0_SCL1_PIN		PTB2
-// #define I2C0_SCL2_PIN		PTD2
-// #define I2C0_SCL3_PIN		PTB2		// NON-FRDM
-// #define I2C0_SDA0_PIN		PTE25
-// #define I2C0_SDA1_PIN		PTB3
-// #define I2C0_SDA2_PIN		PTD3
-// #define I2C0_SDA3_PIN		PTB1		// NON-FRDM
-// #define I2C1_SCL0_PIN		PTC10
-// #define I2C1_SCL1_PIN		PTE1		// NON-FRDM
-// #define I2C1_SDA0_PIN		PTC11
-// #define I2C1_SDA1_PIN		PTE0		// NON-FRDM
-// #define I2C2_SCL0_PIN		PTA12		// NON-FRDM
-// #define I2C2_SCL1_PIN		PTA14		// NON-FRDM
-// #define I2C2_SDA0_PIN		PTA13		// NON-FRDM
-
 // I2C0
 #define I2C0_SCL		I2C0_SCL1_PIN
 #define I2C0_SCL_MUX	2
@@ -125,6 +109,7 @@ void i2c_enable_pins(uint8_t id){
 }
 
 void i2c_enable_pin_IRQ(uint8_t id){
+	
 	pin_t scl = I2C_SCL[id];
 	pin_t sda = I2C_SDA[id];
 	PORT_Type* scl_port_ptr = PORT_ptr[PIN2PORT(scl)];
@@ -138,6 +123,17 @@ void i2c_enable_pin_IRQ(uint8_t id){
 
 }
 
+void i2c_disable_pin_IRQ(uint8_t id){
+
+	pin_t scl = I2C_SCL[id];
+	pin_t sda = I2C_SDA[id];
+	PORT_Type* scl_port_ptr = PORT_ptr[PIN2PORT(scl)];
+	PORT_Type* sda_port_ptr = PORT_ptr[PIN2PORT(scl)];
+
+	scl_port_ptr->PCR[PIN2NUM(scl)] &= ~PORT_PCR_ISF_MASK;	
+	scl_port_ptr->PCR[PIN2NUM(scl)] &= ~PORT_PCR_IRQC_MASK;	
+	
+}
 
 void i2c_enable_clock_gating(uint8_t id){
 	switch(id)
@@ -152,6 +148,26 @@ void i2c_enable_clock_gating(uint8_t id){
 
 		case 2:
 			SIM->SCGC1 |= SIM_SCGC1_I2C2_MASK;
+			break;
+
+		default:
+			break;
+	}
+}
+
+void i2c_disable_clock_gating(uint8_t id){
+	switch(id)
+	{
+		case 0:
+			SIM->SCGC4 &= ~SIM_SCGC4_I2C0_MASK;
+			break;
+		
+		case 1:
+			SIM->SCGC4 &= ~SIM_SCGC4_I2C1_MASK;
+			break;
+
+		case 2:
+			SIM->SCGC1 &= ~SIM_SCGC1_I2C2_MASK;
 			break;
 
 		default:
@@ -174,6 +190,13 @@ void i2c_enable_IRQ(uint8_t id, I2C_Type* i2c_ptr){
 	i2c_ptr->S |= I2C_S_IICIF_MASK;
 	i2c_enable_start_stop_IRQ(i2c_ptr);		
 	NVIC_EnableIRQ(I2C_NVIC[id]);
+}
+
+void i2c_disable_IRQ(uint8_t id, I2C_Type* i2c_ptr){
+	i2c_ptr->C1 &= ~I2C_C1_IICIE_MASK;
+	i2c_disable_start_stop_IRQ(i2c_ptr);		
+	i2c_ptr->S &= ~I2C_S_IICIF_MASK;
+	NVIC_DisableIRQ(I2C_NVIC[id]);
 }
 
 void i2c_send_ack_signal(I2C_Type* i2c_ptr){
@@ -366,7 +389,6 @@ void i2c_set_filter_factor(I2C_Type* i2c_ptr, uint8_t factor){
 	}
 #endif
 }
-
 
 /*******************************************************************************
  *******************************************************************************

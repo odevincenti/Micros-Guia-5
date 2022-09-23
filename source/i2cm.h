@@ -25,8 +25,9 @@
 /*******************************************************************************
  * ENUMERATIONS AND STRUCTURES AND TYPEDEFS
  ******************************************************************************/
-
+enum {I2C0_ID, I2C1_ID, I2C2_ID};
 enum {I2C_START, I2C_RSTART, I2C_STOP};
+enum {I2C_NO_ERR, I2C_ERR_NACK, I2C_ERR_FULL, I2C_ERR_EMPTY, I2C_ARB_LOST};
 
 typedef struct {
 	bool mode;				// true for read, false for write
@@ -44,6 +45,14 @@ typedef struct {
  * FUNCTION PROTOTYPES WITH GLOBAL SCOPE
  ******************************************************************************/
 void I2C_Init(uint8_t id);
+
+bool I2C_NewTransaction(uint8_t id, i2c_transaction_t trans);
+
+bool I2C_IsIDTaken(uint8_t id);
+
+void I2C_FreeID(uint8_t id);
+
+uint8_t I2C_WasError(uint8_t id);
 
 /*******************************************************************************
  ******************************************************************************/
