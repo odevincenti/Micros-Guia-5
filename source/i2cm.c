@@ -133,10 +133,16 @@ void I2C_Init(uint8_t id){
 		i2c_set_baud_rate(i2c_ptr);
 
 		// Habilito interrupciones
-		// i2c_enable_pin_IRQ(id);
 		i2c_enable_IRQ(id, i2c_ptr);
 
 		i2c_enable(i2c_ptr);
+
+		if ((i2c_ptr->FLT & I2C_FLT_STOPF_MASK) == I2C_FLT_STOPF_MASK){		// If a STOP was sent:
+			i2c_ptr->FLT |= I2C_FLT_STOPF_MASK;				// Clear STOPF bit by writing 1 into it
+		} else if ((i2c_ptr->FLT & I2C_FLT_STARTF_MASK) == I2C_FLT_STARTF_MASK){
+			i2c_ptr->FLT |= I2C_FLT_STARTF_MASK;			// Clear STARTF bit by writing 1 into it
+		}
+
 		I2C_init[id] = true;
 	}
 }
@@ -235,7 +241,7 @@ void I2C_fsm(uint8_t id){
 			}
 		} else {											// If buffer full
 			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;				// Stop
-			I2C_error_reg[id] = I2C_ERR_FULL;				// Reg error
+			I2C_error_reg[id] = I2C_ERR_FULL;				// Reg errortras_j
 			I2C_state[id] = I2C_IDLE;
 		} 
 		break;
@@ -248,7 +254,7 @@ void I2C_fsm(uint8_t id){
 		break;
 
 	case I2C_IDLE:
-		if (i2c_trans_tail[id] + 1 != i2c_trans_head[id]){
+		if (i2c_trans_tail[id] + 1 != i2c_trans_head[id] && !(i2c_trans_tail[id] == &i2c_trans[id][I2C_MAX_TRANS_BUFFER] && i2c_trans_head[id] == &i2c_trans[id][0])){
 			I2C_start_transaction(id);
 		}
 		break;
@@ -385,7 +391,7 @@ void i2c_disable(I2C_Type* i2c_ptr){
 void i2c_enable_IRQ(uint8_t id, I2C_Type* i2c_ptr){
 	i2c_ptr->C1 |= I2C_C1_IICIE_MASK;
 	//i2c_enable_pin_IRQ(id);
-	i2c_ptr->S |= I2C_S_IICIF_MASK;
+	//i2c_ptr->S |= I2C_S_IICIF_MASK;			// No es necesario, es Read Only
 	i2c_enable_start_stop_IRQ(i2c_ptr);		
 	NVIC_EnableIRQ(I2C_NVIC[id]);
 }
@@ -399,8 +405,11 @@ void i2c_enable_start_stop_IRQ(I2C_Type* i2c_ptr){
 }
 
 void i2c_disable_start_stop_IRQ(I2C_Type* i2c_ptr){
-	i2c_ptr->FLT |= I2C_FLT_STOPF_MASK;				// Clear STOPF bit by writing 1 into it
-	i2c_ptr->FLT |= I2C_FLT_STARTF_MASK;			// Clear STARTF bit by writing 1 into it
+	if ((i2c_ptr->FLT & I2C_FLT_STOPF_MASK) == I2C_FLT_STOPF_MASK){		// If a STOP was sent:
+		i2c_ptr->FLT |= I2C_FLT_STOPF_MASK;				// Clear STOPF bit by writing 1 into it
+	} else if ((i2c_ptr->FLT & I2C_FLT_STARTF_MASK) == I2C_FLT_STARTF_MASK){
+		i2c_ptr->FLT |= I2C_FLT_STARTF_MASK;			// Clear STARTF bit by writing 1 into it
+	}
 	i2c_ptr->FLT &= ~I2C_FLT_SSIE_MASK;
 }
 
