@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include "i2cm.h"
 
 /*******************************************************************************
  * CONSTANT AND MACRO DEFINITIONS USING #DEFINE
@@ -38,7 +39,7 @@
 typedef uint8_t fifo_id_t;
 
 // FIFO VALUE TYPE
-typedef uint8_t fifo_value_t;
+typedef i2c_transaction_t fifo_value_t;
 
 /*******************************************************************************
  * VARIABLE PROTOTYPES WITH GLOBAL SCOPE
@@ -108,7 +109,7 @@ size_t FIFO_ReadAll(fifo_id_t id, fifo_value_t* data_ptr);
  * @param data: Value to add
  * @return false: Value pushed correctly | true: Buffer full, can't push value
  */
-bool FIFO_PushToBuffer(fifo_id_t id, fifo_value_t data);
+bool FIFO_PushToBuffer(fifo_id_t id, fifo_value_t* data);
 
 /**
  * @brief Remove 1 value from FIFO buffer and copy into external adress

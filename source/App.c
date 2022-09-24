@@ -8,10 +8,11 @@
  * INCLUDE HEADER FILES
  ******************************************************************************/
 
-// #include "board.h"
-// #include "gpio.h"
+#include "board.h"
+#include "gpio.h"
 #include "i2cm.h"
-
+#include "MK64F12.h"
+#include "hardware.h"
 
 /*******************************************************************************
  * CONSTANT AND MACRO DEFINITIONS USING #DEFINE
@@ -32,6 +33,8 @@
 /* Función que se llama 1 vez, al comienzo del programa */
 void App_Init (void)
 {
+	gpioMode(PIN_LED_BLUE, OUTPUT);
+	gpioWrite(PIN_LED_BLUE, 1);
 	I2C_Init(I2C0_ID);
 }
 
@@ -40,6 +43,7 @@ void App_Run (void)
 {
 	static bool i = true;
 	if(i){
+
 		uint8_t write[] = "Hola";
 		i2c_transaction_t trans_w = { .mode = I2C_WRITE_MODE, .address = 0x1D, .ptr = &write[0], .count = 4, .next_rsta = false};
 		I2C_NewTransaction(I2C0_ID, &trans_w);

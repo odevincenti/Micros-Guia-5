@@ -87,7 +87,7 @@ size_t FIFO_WriteToBuffer(fifo_id_t id, fifo_value_t* data, size_t data_size){
 
     for (i = 0; i < data_size && i < MAX_FIFO_SIZE; i++){
 
-        if (FIFO_PushToBuffer(id, *(data + i)) == FIFO_BUFFER_FULL){      // Push value to buffer, if buffer is full:
+        if (FIFO_PushToBuffer(id, data + i) == FIFO_BUFFER_FULL){      // Push value to buffer, if buffer is full:
             break;              // Stop writing
         }
     }
@@ -132,11 +132,11 @@ size_t FIFO_ReadAll(fifo_id_t id, fifo_value_t* data_ptr){
     return i;           // Amount of values pulled
 }
 
-bool FIFO_PushToBuffer(fifo_id_t id, fifo_value_t data){
+bool FIFO_PushToBuffer(fifo_id_t id, fifo_value_t* data){
 
     if (!FIFO_Array[id].is_buffer_full){                        // If buffer is not full
 
-        *((fifo_value_t*)(&FIFO_Array[id].queue[0] + FIFO_Array[id].head)) = data;   // Write data
+        *((fifo_value_t*)(&FIFO_Array[id].queue[0] + FIFO_Array[id].head)) = *data;   // Write data
 #ifdef FIFO_VERBOSE
         printf("fifo verbose - Pushed to FIFO %u: %u\n", id, data);
 #endif
@@ -218,7 +218,7 @@ void FIFO_Reset(fifo_id_t id){
 void FIFO_ClearBuffer(fifo_id_t id){
     uint8_t i;
     for (i = 0; i < MAX_FIFO_SIZE - 1; i++){
-        FIFO_Array[id].queue[i] = 0;
+        // FIFO_Array[id].queue[i] = fifo_empty_value;
     }
 #ifdef FIFO_VERBOSE
     printf("fifo verbose - Clear FIFO %u\n", id);
