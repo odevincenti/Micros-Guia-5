@@ -147,7 +147,7 @@ void I2C_Init(uint8_t id){
 
 		// Enable interrupt
 		i2c_ptr->C1 |= I2C_C1_IICIE_MASK;
-		i2c_ptr->FLT |= I2C_FLT_SSIE_MASK;
+		//i2c_ptr->FLT |= I2C_FLT_SSIE_MASK;
 		NVIC_EnableIRQ(I2C_NVIC[id]);	
 
 		I2C_init[id] = true;
@@ -184,17 +184,23 @@ uint8_t I2C_WasError(uint8_t id){
 void I2C_ISR(uint8_t id){
 	I2C_Type* i2c_ptr = I2C_PTRS[id];
 	if ((i2c_ptr->S & I2C_S_IICIF_MASK) == I2C_S_IICIF_MASK){		// If interrupt flag on:
-		if ((i2c_ptr->FLT & I2C_FLT_STOPF_MASK) == I2C_FLT_STOPF_MASK){		// If a STOP was sent:
-			i2c_ptr->FLT |= I2C_FLT_STOPF_MASK;			// Disable flag
-			i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
-			if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
-				I2C_start_transaction(id);
-			} else {
-				// i2c_ptr->C1 &= ~(I2C_C1_IICEN_MASK | I2C_C1_IICIE_MASK);
-			}
+		// if ((i2c_ptr->FLT & I2C_FLT_STOPF_MASK) == I2C_FLT_STOPF_MASK){		// If a STOP was sent:
+		// 	i2c_ptr->FLT |= I2C_FLT_STOPF_MASK;			// Disable flag
+		// 	i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
+		// 	if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
+		// 		I2C_start_transaction(id);
+		// 	} else {
+		// 		// i2c_ptr->C1 &= ~(I2C_C1_IICEN_MASK | I2C_C1_IICIE_MASK);
+		// 	}
 
-		} else if ((i2c_ptr->FLT & I2C_FLT_STARTF_MASK) == I2C_FLT_STARTF_MASK){	// If a START was sent:
-			i2c_ptr->FLT |= I2C_FLT_STARTF_MASK;		// Disable flag
+		// } else if ((i2c_ptr->FLT & I2C_FLT_STARTF_MASK) == I2C_FLT_STARTF_MASK){	// If a START was sent:
+		// 	i2c_ptr->FLT |= I2C_FLT_STARTF_MASK;		// Disable flag
+		// 	i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
+		// 	if ((i2c_ptr->S & I2C_S_TCF_MASK) == I2C_S_TCF_MASK){	// If transfer complete:
+		// 		I2C_fsm(id);		// Go to FSM
+		// 	}
+		
+		if ((i2c_ptr->S & I2C_S_TCF_MASK) == I2C_S_TCF_MASK){
 			i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
 			if ((i2c_ptr->S & I2C_S_TCF_MASK) == I2C_S_TCF_MASK){	// If transfer complete:
 				I2C_fsm(id);		// Go to FSM
@@ -203,18 +209,11 @@ void I2C_ISR(uint8_t id){
 		} else if ((i2c_ptr->S & I2C_S_ARBL_MASK) == I2C_S_ARBL_MASK){
 			i2c_ptr->S |= I2C_S_ARBL_MASK;		// Disable interrupt flag
 			i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
-			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;			// Stop
+			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;	// Stop
 
 			I2C_state[id] = I2C_IDLE;			// Set next state
 			I2C_error_reg[id] = I2C_ARB_LOST;	// Error, arbitration lost
 
-		} else if ((i2c_ptr->S & I2C_S_TCF_MASK) == I2C_S_TCF_MASK){
-			i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
-			if ((i2c_ptr->S & I2C_S_TCF_MASK) == I2C_S_TCF_MASK){	// If transfer complete:
-				I2C_fsm(id);		// Go to FSM
-			}
-			//I2C_state[id] = I2C_IDLE;			// Set next state
-			//I2C_error_reg[id] = I2C_ARB_LOST;	// Error, arbitration lost
 		} else {
 			i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
 		}
@@ -268,7 +267,9 @@ void I2C_fsm(uint8_t id){
 
 	case I2C_IDLE:
 		if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
-			//I2C_start_transaction(id);
+			I2C_start_transaction(id);
+		} else if ((i2c_ptr->S & I2C_S_BUSY_MASK) == I2C_S_BUSY_MASK){
+			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;				// Stop
 		}
 		break;
 
@@ -277,23 +278,18 @@ void I2C_fsm(uint8_t id){
 	}
 }
 
-
 void I2C_start_transaction(uint8_t id){
 	I2C_Type* i2c_ptr = I2C_PTRS[id];
-	if (I2C_state[id] == I2C_IDLE && !FIFO_IsBufferEmpty(i2c_fifo[id])){				// Si el bus está libre: hay que mandar un start
-		bool b = FIFO_PullFromBuffer(i2c_fifo[id], i2c_curr_trans[id]);
-		i2c_ptr->C1 |= I2C_C1_TX_MASK;			// TX mode
+	i2c_ptr->C1 |= I2C_C1_TX_MASK;				// TX mode
+	if (!i2c_curr_trans[id]->next_rsta){	// If new transaction:
+		bool b = FIFO_PullFromBuffer(i2c_fifo[id], i2c_curr_trans[id]);		// Get next transaction
 		i2c_ptr->C1 |= I2C_C1_MST_MASK;			// Start
-		i2c_ptr->D = (i2c_curr_trans[id]->address << 1) | i2c_curr_trans[id]->mode;		// Write address
-		I2C_state[id] = (i2c_curr_trans[id]->mode == I2C_READ) ? I2C_FAKE_READ : I2C_WRITE;		// Set next state
-	} else if (i2c_curr_trans[id]->next_rsta){		// If a repeated start follows
-		bool b = FIFO_PullFromBuffer(i2c_fifo[id], i2c_curr_trans[id]);
-		// todo: Add write mode
-		i2c_ptr->C1 |= I2C_C1_TX_MASK;			// TX mode
+	} else{									// If a repeated start follows:
+		bool b = FIFO_PullFromBuffer(i2c_fifo[id], i2c_curr_trans[id]);		// Get next transaction
 		i2c_ptr->C1 |= I2C_C1_RSTA_MASK;		// Repeated start
-		i2c_ptr->D = (i2c_curr_trans[id]->address << 1) | i2c_curr_trans[id]->mode;		// Write address
-		I2C_state[id] = I2C_FAKE_READ;			// Set next state
 	}
+	i2c_ptr->D = (i2c_curr_trans[id]->address << 1) | i2c_curr_trans[id]->mode;				// Write address
+	I2C_state[id] = (i2c_curr_trans[id]->mode == I2C_READ) ? I2C_FAKE_READ : I2C_WRITE;		// Set next state
 }
 
 void I2C_reset(uint8_t id){

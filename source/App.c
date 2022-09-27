@@ -24,6 +24,7 @@
  ******************************************************************************/
 static uint8_t write[4] = "Hola";
 static uint8_t read[5];
+static uint8_t read_rsta[5];
 
 /*******************************************************************************
  *******************************************************************************
@@ -48,17 +49,16 @@ void App_Run (void)
 		// start
 		// 00111010 0
 
-		i2c_transaction_t trans_r = { .mode = I2C_READ_MODE, .address = 0x1D, .ptr = &read[0], .count = 5, .next_rsta = false};
-		I2C_NewTransaction(I2C0_ID, &trans_r);
+		//i2c_transaction_t trans_r = { .mode = I2C_READ_MODE, .address = 0x1D, .ptr = &read[0], .count = 5, .next_rsta = false};
+		//I2C_NewTransaction(I2C0_ID, &trans_r);
 		// start
-		// 00001011 1
+		// 00111010 0
 
-		// i2c_transaction_t trans_w_rsta = { .mode = I2C_WRITE_MODE, .address = 0x05, .ptr = &write[0], .count = 4, .next_rsta = true};
-		// I2C_NewTransaction(I2C0_ID, &trans_w_rsta);
+		i2c_transaction_t trans_w_rsta = { .mode = I2C_WRITE_MODE, .address = 0x1D, .ptr = &write[0], .count = 4, .next_rsta = true};
+		I2C_NewTransaction(I2C0_ID, &trans_w_rsta);
 
-		//uint8_t read_rsta[9];
-		// i2c_transaction_t trans_r_rsta = { .mode = I2C_READ_MODE, .address = 0x05, .ptr = &read_rsta[0], .count = 9, .next_rsta = false};
-		// I2C_NewTransaction(I2C0_ID, &trans_r_rsta);
+		i2c_transaction_t trans_r_rsta = { .mode = I2C_READ_MODE, .address = 0x1D, .ptr = &read_rsta[0], .count = 5, .next_rsta = false};
+		I2C_NewTransaction(I2C0_ID, &trans_r_rsta);
 
 		i = false;
 
