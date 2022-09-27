@@ -132,23 +132,23 @@ void I2C_Init(uint8_t id){
 		SIM->SCGC5 |= PORT_SCG[PIN2PORT(I2C_SCL_pins[id])];
 		SIM->SCGC5 |= PORT_SCG[PIN2PORT(I2C_SDA_pins[id])];
 
-		// Enable pin					  Open Drain		Mux							    Pull Enable		   Pullup
+		// Enable pin					  										Open Drain			Mux							    Pull Enable		   Pullup
 		PORT_PTRS[PIN2PORT(I2C_SCL_pins[id])]->PCR[PIN2NUM(I2C_SCL_pins[id])] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SCL_MUX[id]) | PORT_PCR_PE_MASK | PORT_PCR_PS_MASK;
 		PORT_PTRS[PIN2PORT(I2C_SDA_pins[id])]->PCR[PIN2NUM(I2C_SDA_pins[id])] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SDA_MUX[id]) | PORT_PCR_PE_MASK | PORT_PCR_PS_MASK;
+		
+		// Set baud rate
+		i2c_ptr->F = I2C_F_ICR(ICR) | I2C_F_MULT(MUL);
 
 		// Reset Control Register
 		i2c_ptr->C1 = 0x0;			
-		
-		// Set buad rate
-		i2c_ptr->F = I2C_F_ICR(ICR) | I2C_F_MULT(MUL);
+
+		// Enable I2C
+		i2c_ptr->C1 |= I2C_C1_IICEN_MASK;
 
 		// Enable interrupt
 		i2c_ptr->C1 |= I2C_C1_IICIE_MASK;
 		i2c_ptr->FLT |= I2C_FLT_SSIE_MASK;
 		NVIC_EnableIRQ(I2C_NVIC[id]);	
-
-		// Enable I2C
-		i2c_ptr->C1 |= I2C_C1_IICEN_MASK;
 
 		I2C_init[id] = true;
 	}
@@ -203,11 +203,11 @@ void I2C_ISR(uint8_t id){
 		} else if ((i2c_ptr->S & I2C_S_ARBL_MASK) == I2C_S_ARBL_MASK){
 			i2c_ptr->S |= I2C_S_ARBL_MASK;		// Disable interrupt flag
 			i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
+			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;			// Stop
 
-			//TODO: stop?
+			I2C_state[id] = I2C_IDLE;			// Set next state
+			I2C_error_reg[id] = I2C_ARB_LOST;	// Error, arbitration lost
 
-			//I2C_state[id] = I2C_IDLE;			// Set next state
-			//I2C_error_reg[id] = I2C_ARB_LOST;	// Error, arbitration lost
 		} else if ((i2c_ptr->S & I2C_S_TCF_MASK) == I2C_S_TCF_MASK){
 			i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
 			if ((i2c_ptr->S & I2C_S_TCF_MASK) == I2C_S_TCF_MASK){	// If transfer complete:
@@ -231,7 +231,7 @@ void I2C_fsm(uint8_t id){
 	case I2C_WRITE:
 		if ((i2c_ptr->S & I2C_S_RXAK_MASK) != I2C_S_RXAK_MASK){		// If ACK:
 			i2c_ptr->C1 |= I2C_C1_TX_MASK;							// Set TX mode
-				i2c_ptr->D = *i2c_curr_trans[id]->ptr++;			// Write to data
+			i2c_ptr->D = *i2c_curr_trans[id]->ptr++;				// Write to data
 			if(!(--i2c_curr_trans[id]->count)){					// If count is 0 -> Done writing:
 				if (!i2c_curr_trans[id]->next_rsta){			// If not repeated start
 					i2c_ptr->C1 &= ~I2C_C1_MST_MASK;			// Stop
@@ -244,14 +244,16 @@ void I2C_fsm(uint8_t id){
 			I2C_state[id] = I2C_IDLE;
 		}
 		break;
+	
 	case I2C_READ:
-		// todo: chequear si hubo ack de slave (seria error)
-		i2c_ptr->C1 &= ~I2C_C1_TX_MASK;			// Set RX mode
-		i2c_ptr->C1 &= ~I2C_C1_TXAK_MASK;		// Send ACK
-		*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;
-		if(!(--i2c_curr_trans[id]->count)){					// If count is 0 -> Done reading:
-			if (!i2c_curr_trans[id]->next_rsta){			// If not repeated start
-				i2c_ptr->C1 &= ~I2C_C1_MST_MASK;			// Stop
+		i2c_ptr->C1 &= ~I2C_C1_TX_MASK;					// Set RX mode
+		*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;		// Read data
+		if (--i2c_curr_trans[id]->count ){			// If this is not the last byte:
+			i2c_ptr->C1 &= ~I2C_C1_TXAK_MASK;			// Send ACK
+		} else {									// If count is 0 -> Done reading:
+			i2c_ptr->C1 |= I2C_C1_TX_MASK;				// Clear RX mode
+			if (!i2c_curr_trans[id]->next_rsta){		// If not repeated start
+				i2c_ptr->C1 &= ~I2C_C1_MST_MASK;		// Stop
 			}												// FIXME: Si era rsta, vuelve a entrar a la ISR?
 			I2C_state[id] = I2C_IDLE;
 		}
@@ -279,7 +281,6 @@ void I2C_fsm(uint8_t id){
 void I2C_start_transaction(uint8_t id){
 	I2C_Type* i2c_ptr = I2C_PTRS[id];
 	if (I2C_state[id] == I2C_IDLE && !FIFO_IsBufferEmpty(i2c_fifo[id])){				// Si el bus está libre: hay que mandar un start
-//		i2c_ptr->C1 |= I2C_C1_IICEN_MASK | I2C_C1_IICIE_MASK;
 		bool b = FIFO_PullFromBuffer(i2c_fifo[id], i2c_curr_trans[id]);
 		i2c_ptr->C1 |= I2C_C1_TX_MASK;			// TX mode
 		i2c_ptr->C1 |= I2C_C1_MST_MASK;			// Start
@@ -288,8 +289,8 @@ void I2C_start_transaction(uint8_t id){
 	} else if (i2c_curr_trans[id]->next_rsta){		// If a repeated start follows
 		bool b = FIFO_PullFromBuffer(i2c_fifo[id], i2c_curr_trans[id]);
 		// todo: Add write mode
-		i2c_ptr->C1 |= I2C_C1_RSTA_MASK;		// Repeated start
 		i2c_ptr->C1 |= I2C_C1_TX_MASK;			// TX mode
+		i2c_ptr->C1 |= I2C_C1_RSTA_MASK;		// Repeated start
 		i2c_ptr->D = (i2c_curr_trans[id]->address << 1) | i2c_curr_trans[id]->mode;		// Write address
 		I2C_state[id] = I2C_FAKE_READ;			// Set next state
 	}
