@@ -221,14 +221,7 @@ void I2C_fsm(uint8_t id){
 			i2c_ptr->C1 |= I2C_C1_TX_MASK;							// Set TX mode
 			i2c_ptr->D = *i2c_curr_trans[id]->ptr++;				// Write to data
 			if(!(--i2c_curr_trans[id]->count)){					// If count is 0 -> Done writing:
-				if (!i2c_curr_trans[id]->next_rsta){			// If not repeated start
-					i2c_ptr->C1 &= ~I2C_C1_MST_MASK;			// Stop
-				}												// FIXME: Si era rsta, vuelve a entrar a la ISR?
-				if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
-					I2C_start_transaction(id);
-				} else {
-					I2C_state[id] = I2C_IDLE;
-				}
+				I2C_state[id] = I2C_IDLE;
 			}
 		} else {											// If NACK:
 			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;				// Stop
@@ -243,15 +236,9 @@ void I2C_fsm(uint8_t id){
 		if (--i2c_curr_trans[id]->count){			// If this is not the last byte:
 			i2c_ptr->C1 &= ~I2C_C1_TXAK_MASK;			// Send ACK
 		} else {									// If count is 0 -> Done reading:
+			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;			// Stop
 			i2c_ptr->C1 |= I2C_C1_TX_MASK;				// Clear RX mode
-			if (!i2c_curr_trans[id]->next_rsta){		// If not repeated start
-				i2c_ptr->C1 &= ~I2C_C1_MST_MASK;		// Stop
-			}												// FIXME: Si era rsta, vuelve a entrar a la ISR?
-			if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
-				I2C_start_transaction(id);
-			} else {
-				I2C_state[id] = I2C_IDLE;
-			}
+			I2C_state[id] = I2C_IDLE;
 		}
 		break;
 
@@ -263,12 +250,13 @@ void I2C_fsm(uint8_t id){
 		break;
 
 	case I2C_IDLE:
+		if (!i2c_curr_trans[id]->next_rsta && (i2c_ptr->S & I2C_S_BUSY_MASK) == I2C_S_BUSY_MASK){		// If not repeated start
+			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;		// Stop
+		}												// FIXME: Si era rsta, vuelve a entrar a la ISR?
 		if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
 			I2C_start_transaction(id);
 		// } else if (i2c_loading[id]){
 		// 	i2c_ptr->S |= I2C_S_IICIF_MASK;		// Enable interrupt flag
-		} else if ((i2c_ptr->S & I2C_S_BUSY_MASK) == I2C_S_BUSY_MASK){
-			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;				// Stop
 		}
 		break;
 
