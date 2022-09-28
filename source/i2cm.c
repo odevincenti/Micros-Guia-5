@@ -232,13 +232,20 @@ void I2C_fsm(uint8_t id){
 	
 	case I2C_READ:
 		i2c_ptr->C1 &= ~I2C_C1_TX_MASK;					// Set RX mode
-		*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;		// Read data
 		if (--i2c_curr_trans[id]->count){			// If this is not the last byte:
 			i2c_ptr->C1 &= ~I2C_C1_TXAK_MASK;			// Send ACK
+			*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;		// Read data
+			if (i2c_curr_trans[id]->count == 1){
+				i2c_ptr->C1 |= I2C_C1_TXAK_MASK;		// Send NACK
+			}
 		} else {									// If count is 0 -> Done reading:
 			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;			// Stop
+			*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;		// Read data
 			i2c_ptr->C1 |= I2C_C1_TX_MASK;				// Clear RX mode
 			I2C_state[id] = I2C_IDLE;
+			if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
+				I2C_start_transaction(id);
+			}
 		}
 		break;
 
@@ -246,6 +253,7 @@ void I2C_fsm(uint8_t id){
 		i2c_ptr->C1 &= ~I2C_C1_TX_MASK;			// Set RX mode
 		i2c_ptr->C1 &= ~I2C_C1_TXAK_MASK;		// Send ACK
 		i2c_ptr->D;								// Discard read
+		i2c_curr_trans[id]->count++;
 		I2C_state[id] = I2C_READ;				// Next state: READ
 		break;
 

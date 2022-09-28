@@ -49,8 +49,8 @@ void App_Run (void)
 		// start
 		// 00111010 0
 
-		//i2c_transaction_t trans_r = { .mode = I2C_READ_MODE, .address = 0x1D, .ptr = &read[0], .count = 3, .next_rsta = false};
-		//I2C_NewTransaction(I2C0_ID, &trans_r);
+		i2c_transaction_t trans_r = { .mode = I2C_READ_MODE, .address = 0x1D, .ptr = &read[0], .count = 3, .next_rsta = false};
+		I2C_NewTransaction(I2C0_ID, &trans_r);
 		// start
 		// 00111010 0
 
