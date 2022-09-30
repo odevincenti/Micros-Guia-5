@@ -13,6 +13,7 @@
 #include "hardware.h"
 #include "board.h"
 #include "MK64F12.h"
+#include "gpio.h"
 
 /*******************************************************************************
  * CONSTANT AND MACRO DEFINITIONS USING #DEFINE
@@ -20,23 +21,32 @@
 
 /******************* PINS ********************/
 
+#define I2C_DEVELOPMENT_MODE
+
 // I2C0
-#define I2C0_SCL		I2C0_SCL0_PIN
+#define I2C0_SCL		PTE24
 #define I2C0_SCL_MUX	5
-#define I2C0_SDA		I2C0_SDA0_PIN
+#define I2C0_SDA		PTE25
 #define I2C0_SDA_MUX	5
 
 // I2C1
-#define I2C1_SCL		I2C1_SCL0_PIN
+#define I2C1_SCL		PTC10
 #define I2C1_SCL_MUX	2
-#define I2C1_SDA		I2C1_SDA0_PIN
+#define I2C1_SDA		PTC11
 #define I2C1_SDA_MUX	2
 
 // I2C2
-#define I2C2_SCL		I2C2_SCL0_PIN
+#define I2C2_SCL		PORTNUM2PIN(PA, 12)
 #define I2C2_SCL_MUX	5
-#define I2C2_SDA		I2C2_SDA0_PIN
+#define I2C2_SDA		PORTNUM2PIN(PA, 13)
 #define I2C2_SDA_MUX	5
+
+#define I2C0_TEST_PIN	PTD1
+#define I2C1_TEST_PIN	PTB11
+#define I2C2_TEST_PIN	PTB20
+
+#define I2C_IN_ISR		1
+#define I2C_OUT_ISR		0
 
 #define MUL 0x0		// mul = 1
 #define ICR 0x1A	// SCL divider = 26 (I2C divider and hold values table - Reference Manual 51.4.1.10)
@@ -87,6 +97,7 @@ static pin_t const I2C_SCL_pins[I2C_N] = {I2C0_SCL, I2C1_SCL, I2C2_SCL};
 static pin_t const I2C_SDA_pins[I2C_N] = {I2C0_SDA, I2C1_SDA, I2C2_SDA};
 static uint8_t const I2C_SCL_MUX[I2C_N] = {I2C0_SCL_MUX, I2C1_SCL_MUX, I2C2_SCL_MUX};
 static uint8_t const I2C_SDA_MUX[I2C_N] = {I2C0_SDA_MUX, I2C1_SDA_MUX, I2C2_SDA_MUX};
+static uint8_t const I2C_TEST_PIN[I2C_N] = {I2C0_TEST_PIN, I2C1_TEST_PIN, I2C2_TEST_PIN};
 
 static PORT_Type* const PORT_PTRS[] = PORT_BASE_PTRS;
 static I2C_Type* const I2C_PTRS[] = I2C_BASE_PTRS;
@@ -115,6 +126,9 @@ void I2C_Init(uint8_t id){
 
 		// Request FIFO
 		i2c_fifo[id] = FIFO_GetId();
+
+		// Init Test Pin
+		gpioMode(I2C_TEST_PIN[id], OUTPUT);
 
 		// Init I2C
 		I2C_Type* i2c_ptr = I2C_PTRS[id];
@@ -260,7 +274,7 @@ void I2C_fsm(uint8_t id){
 	case I2C_IDLE:
 		if (!i2c_curr_trans[id]->next_rsta && (i2c_ptr->S & I2C_S_BUSY_MASK) == I2C_S_BUSY_MASK){		// If not repeated start
 			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;		// Stop
-		}												// FIXME: Si era rsta, vuelve a entrar a la ISR?
+		}												
 		if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
 			I2C_start_transaction(id);
 		// } else if (i2c_loading[id]){
@@ -297,13 +311,48 @@ void I2C_reset(uint8_t id){
 /******************************************************************************/
 
 __ISR__ I2C0_IRQHandler(void) {
+#ifdef I2C_DEVELOPMENT_MODE
+	gpioWrite(I2C0_TEST_PIN, I2C_IN_ISR);
+#endif
     I2C_ISR(0);
+#ifdef I2C_DEVELOPMENT_MODE
+	gpioWrite(I2C0_TEST_PIN, I2C_OUT_ISR);
+#endif
 }
 
 __ISR__ I2C1_IRQHandler(void) {
+#ifdef I2C_DEVELOPMENT_MODE
+	gpioWrite(I2C1_TEST_PIN, I2C_IN_ISR);
+#endif
     I2C_ISR(1);
+#ifdef I2C_DEVELOPMENT_MODE
+	gpioWrite(I2C1_TEST_PIN, I2C_OUT_ISR);
+#endif
 }
 
 __ISR__ I2C2_IRQHandler(void) {
+#ifdef I2C_DEVELOPMENT_MODE
+	gpioWrite(I2C2_TEST_PIN, I2C_IN_ISR);
+#endif
     I2C_ISR(2);
+#ifdef I2C_DEVELOPMENT_MODE
+	gpioWrite(I2C2_TEST_PIN, I2C_OUT_ISR);
+#endif
 }
+
+
+// #define I2C0_SCL0_PIN		PORTNUM2PIN(PE, 24)
+// #define I2C0_SCL1_PIN		PORTNUM2PIN(PB, 2)
+// #define I2C0_SCL2_PIN		PORTNUM2PIN(PD, 2)
+// #define I2C0_SCL3_PIN		PORTNUM2PIN(PB, 2)		// NON-FRDM
+// #define I2C0_SDA0_PIN		PORTNUM2PIN(PE, 25)
+// #define I2C0_SDA1_PIN		PORTNUM2PIN(PB, 3)
+// #define I2C0_SDA2_PIN		PORTNUM2PIN(PD, 3)
+// #define I2C0_SDA3_PIN		PORTNUM2PIN(PB, 1)		// NON-FRDM
+// #define I2C1_SCL0_PIN		PORTNUM2PIN(PC, 10)
+// #define I2C1_SCL1_PIN		PORTNUM2PIN(PE, 1)		// NON-FRDM
+// #define I2C1_SDA0_PIN		PORTNUM2PIN(PC, 11)
+// #define I2C1_SDA1_PIN		PORTNUM2PIN(PE, 0)		// NON-FRDM
+// #define I2C2_SCL0_PIN		PORTNUM2PIN(PA, 12)		// NON-FRDM
+// #define I2C2_SCL1_PIN		PORTNUM2PIN(PA, 14)		// NON-FRDM
+// #define I2C2_SDA0_PIN		PORTNUM2PIN(PA, 13)		// NON-FRDM

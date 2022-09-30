@@ -42,6 +42,45 @@
 
 // PINES DIGITALES
 // FRDM
+
+#define	PTA0		PORTNUM2PIN(PA, 0)
+#define	PTA1		PORTNUM2PIN(PA, 1)
+#define	PTA2		PORTNUM2PIN(PA, 2)
+
+#define	PTB2		PORTNUM2PIN(PB, 2)
+#define	PTB3		PORTNUM2PIN(PB, 3)
+#define	PTB9		PORTNUM2PIN(PB, 9)
+#define	PTB10		PORTNUM2PIN(PB, 10)
+#define	PTB11		PORTNUM2PIN(PB, 11)
+#define	PTB18		PORTNUM2PIN(PB, 18)
+#define	PTB19		PORTNUM2PIN(PB, 19)
+#define	PTB20		PORTNUM2PIN(PB, 20)
+#define	PTB23		PORTNUM2PIN(PB, 23)
+
+#define	PTC0		PORTNUM2PIN(PC, 0)
+#define	PTC1		PORTNUM2PIN(PC, 1)
+#define	PTC2		PORTNUM2PIN(PC, 2)
+#define	PTC3		PORTNUM2PIN(PC, 3)
+#define	PTC4		PORTNUM2PIN(PC, 4)
+#define	PTC5		PORTNUM2PIN(PC, 5)
+#define	PTC7		PORTNUM2PIN(PC, 7)
+#define	PTC8		PORTNUM2PIN(PC, 8)
+#define	PTC9		PORTNUM2PIN(PC, 9)
+#define	PTC10		PORTNUM2PIN(PC, 10)
+#define	PTC11		PORTNUM2PIN(PC, 11)
+#define	PTC16		PORTNUM2PIN(PC, 16)
+#define	PTC17		PORTNUM2PIN(PC, 17)
+
+#define	PTD0		PORTNUM2PIN(PD, 0)
+#define	PTD1		PORTNUM2PIN(PD, 1)
+#define	PTD2		PORTNUM2PIN(PD, 2)
+#define	PTD3		PORTNUM2PIN(PD, 3)
+
+#define	PTE24		PORTNUM2PIN(PE, 24)
+#define	PTE25		PORTNUM2PIN(PE, 25)
+#define	PTE26		PORTNUM2PIN(PE, 26)
+
+
 #define DIO_1           PORTNUM2PIN(PC, 3)	    // PTC3
 #define DIO_2           PORTNUM2PIN(PC, 2)	    // PTC2
 #define DIO_3           PORTNUM2PIN(PA, 2)	    // PTA2
@@ -81,40 +120,6 @@
 #define DIO_27			PORTNUM2PIN(PD, 2)
 #define DIO_28			PORTNUM2PIN(PC, 16)
 #define DIO_29			PORTNUM2PIN(PE, 25)
-
-// I2C
-// #define PTE24		PORTNUM2PIN(PE, 24)
-// #define PTB2		PORTNUM2PIN(PB, 2)
-// #define PTD2		PORTNUM2PIN(PD, 2)
-// #define PTB2		PORTNUM2PIN(PB, 2)		// NON-FRDM
-// #define PTE25		PORTNUM2PIN(PE, 25)
-// #define PTB3		PORTNUM2PIN(PB, 3)
-// #define PTD3		PORTNUM2PIN(PD, 3)
-// #define PTB1		PORTNUM2PIN(PB, 1)		// NON-FRDM
-// #define PTC10		PORTNUM2PIN(PC, 10)
-// #define PTE1		PORTNUM2PIN(PE, 1)		// NON-FRDM
-// #define PTC11		PORTNUM2PIN(PC, 11)
-// #define PTE0		PORTNUM2PIN(PE, 0)		// NON-FRDM
-// #define PTA12		PORTNUM2PIN(PA, 12)		// NON-FRDM
-// #define PTA14		PORTNUM2PIN(PA, 14)		// NON-FRDM
-// #define PTA13		PORTNUM2PIN(PA, 13)		// NON-FRDM
-
-#define I2C0_SCL0_PIN		PORTNUM2PIN(PE, 24)
-#define I2C0_SCL1_PIN		PORTNUM2PIN(PB, 2)
-#define I2C0_SCL2_PIN		PORTNUM2PIN(PD, 2)
-#define I2C0_SCL3_PIN		PORTNUM2PIN(PB, 2)		// NON-FRDM
-#define I2C0_SDA0_PIN		PORTNUM2PIN(PE, 25)
-#define I2C0_SDA1_PIN		PORTNUM2PIN(PB, 3)
-#define I2C0_SDA2_PIN		PORTNUM2PIN(PD, 3)
-#define I2C0_SDA3_PIN		PORTNUM2PIN(PB, 1)		// NON-FRDM
-#define I2C1_SCL0_PIN		PORTNUM2PIN(PC, 10)
-#define I2C1_SCL1_PIN		PORTNUM2PIN(PE, 1)		// NON-FRDM
-#define I2C1_SDA0_PIN		PORTNUM2PIN(PC, 11)
-#define I2C1_SDA1_PIN		PORTNUM2PIN(PE, 0)		// NON-FRDM
-#define I2C2_SCL0_PIN		PORTNUM2PIN(PA, 12)		// NON-FRDM
-#define I2C2_SCL1_PIN		PORTNUM2PIN(PA, 14)		// NON-FRDM
-#define I2C2_SDA0_PIN		PORTNUM2PIN(PA, 13)		// NON-FRDM
-
 
 /*******************************************************************************
  ******************************************************************************/
