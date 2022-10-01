@@ -48,8 +48,8 @@
 #define I2C_IN_ISR		1
 #define I2C_OUT_ISR		0
 
-#define MUL 0x0		// mul = 1
-#define ICR 0x1A	// SCL divider = 26 (I2C divider and hold values table - Reference Manual 51.4.1.10)
+#define MUL 0x02		// mul = 1
+#define ICR 0x17	// SCL divider = 26 (I2C divider and hold values table - Reference Manual 51.4.1.10)
 
 #define I2C_MAX_TRANS_BUFFER	16
 
@@ -66,7 +66,7 @@ enum {I2C_WRITE, I2C_READ, I2C_FAKE_READ, I2C_IDLE};
  * FUNCTION PROTOTYPES FOR PRIVATE FUNCTIONS WITH FILE LEVEL SCOPE
  ******************************************************************************/
 void I2C_ISR(uint8_t id);
-void I2C_fsm(uint8_t id);
+bool I2C_fsm(uint8_t id);
 void I2C_start_transaction(uint8_t id);
 bool I2C_push_transaction(uint8_t id, i2c_transaction_t* trans);
 i2c_transaction_t* I2C_pull_transaction(uint8_t id);
@@ -176,9 +176,6 @@ bool I2C_NewTransaction(uint8_t id, i2c_transaction_t* trans){
 		// i2c_loading[id] = false;
 		I2C_start_transaction(id);
 	}
-	if (!b && FIFO_GetBufferLength(i2c_fifo[id]) == 1 && I2C_state[id] == I2C_IDLE){
-		I2C_start_transaction(id);
-	}
 	// i2c_loading[id] = false;
 	return b;
 }
@@ -207,8 +204,9 @@ void I2C_ISR(uint8_t id){
 	// if ((i2c_ptr->S & I2C_S_IICIF_MASK) == I2C_S_IICIF_MASK){		// If interrupt flag on:
 		
 		if ((i2c_ptr->S & I2C_S_TCF_MASK) == I2C_S_TCF_MASK){
-			i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
-			I2C_fsm(id);		// Go to FSM
+			if (!I2C_fsm(id)){		// Go to FSM
+				i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
+			}
 		
 		} else if ((i2c_ptr->S & I2C_S_ARBL_MASK) == I2C_S_ARBL_MASK){
 			i2c_ptr->S |= I2C_S_ARBL_MASK;		// Disable interrupt flag
@@ -224,7 +222,9 @@ void I2C_ISR(uint8_t id){
 	// }
 }
 
-void I2C_fsm(uint8_t id){
+bool I2C_fsm(uint8_t id){
+
+	bool r = false;
 
 	I2C_Type* i2c_ptr = I2C_PTRS[id];
 
@@ -239,7 +239,7 @@ void I2C_fsm(uint8_t id){
 			}
 		} else {											// If NACK:
 			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;				// Stop
-			// I2C_error_reg[id] = I2C_ERR_NACK;				// Reg error
+			// I2C_error_reg[id] = I2C_ERR_NACK;			// Reg error
 			I2C_state[id] = I2C_IDLE;
 		}
 		break;
@@ -272,19 +272,19 @@ void I2C_fsm(uint8_t id){
 		break;
 
 	case I2C_IDLE:
-		if (!i2c_curr_trans[id]->next_rsta && (i2c_ptr->S & I2C_S_BUSY_MASK) == I2C_S_BUSY_MASK){		// If not repeated start
+		if (!i2c_curr_trans[id]->next_rsta && (i2c_ptr->C1 & I2C_C1_MST_MASK) == I2C_C1_MST_MASK){		// If not repeated start
 			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;		// Stop
-		}												
+		}
 		if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
 			I2C_start_transaction(id);
-		// } else if (i2c_loading[id]){
-		// 	i2c_ptr->S |= I2C_S_IICIF_MASK;		// Enable interrupt flag
 		}
 		break;
 
 	default:
 		break;
 	}
+
+	return r;
 }
 
 void I2C_start_transaction(uint8_t id){
@@ -292,6 +292,7 @@ void I2C_start_transaction(uint8_t id){
 	i2c_ptr->C1 |= I2C_C1_TX_MASK;				// TX mode
 	if (!i2c_curr_trans[id]->next_rsta){	// If new transaction:
 		FIFO_PullFromBuffer(i2c_fifo[id], i2c_curr_trans[id]);		// Get next transaction
+		while ((i2c_ptr->S & I2C_S_BUSY_MASK) == I2C_S_BUSY_MASK);
 		i2c_ptr->C1 |= I2C_C1_MST_MASK;			// Start
 	} else{									// If a repeated start follows:
 		FIFO_PullFromBuffer(i2c_fifo[id], i2c_curr_trans[id]);		// Get next transaction
