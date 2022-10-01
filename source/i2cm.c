@@ -53,8 +53,8 @@
 #define I2C_IN_ISR		1
 #define I2C_OUT_ISR		0
 
-#define MUL 0x02		// mul = 1
-#define ICR 0x17	// SCL divider = 26 (I2C divider and hold values table - Reference Manual 51.4.1.10)
+#define MUL 0x02			// mul = 4
+#define ICR_100K 0x17		// SCL divider = 26 (I2C divider and hold values table - Reference Manual 51.4.1.10)
 
 #define I2C_MAX_TRANS_BUFFER	16
 
@@ -157,7 +157,7 @@ void I2C_Init(uint8_t id){
 		PORT_PTRS[PIN2PORT(I2C_SDA_pins[id])]->PCR[PIN2NUM(I2C_SDA_pins[id])] = PORT_PCR_ODE(1) | PORT_PCR_MUX(I2C_SDA_MUX[id]) | PORT_PCR_PE_MASK | PORT_PCR_PS_MASK;
 		
 		// Set baud rate
-		i2c_ptr->F = I2C_F_ICR(ICR) | I2C_F_MULT(MUL);
+		i2c_ptr->F = I2C_F_ICR(ICR_100K) | I2C_F_MULT(MUL);
 
 		// Reset Control Register
 		i2c_ptr->C1 = 0x0;			
@@ -227,8 +227,6 @@ void I2C_ISR(uint8_t id){
 
 bool I2C_fsm(uint8_t id){
 
-	bool r = false;
-
 	I2C_Type* i2c_ptr = I2C_PTRS[id];
 
 	switch(I2C_state[id]){
@@ -287,8 +285,6 @@ bool I2C_fsm(uint8_t id){
 	default:
 		break;
 	}
-
-	return r;
 }
 
 void I2C_start_transaction(uint8_t id){
