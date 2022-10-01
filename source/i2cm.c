@@ -22,6 +22,11 @@
 /******************* PINS ********************/
 
 #define I2C_DEVELOPMENT_MODE
+// #define I2C_SET_FAKE_READ
+// TODO: Tener 3 modos según el futuro uso:
+//		- Sin fake read
+//		- Con fake read
+//		- Ambos: Chequea si ese periférico necesita fake read o no
 
 // I2C0
 #define I2C0_SCL		PTE24
@@ -170,13 +175,11 @@ void I2C_Init(uint8_t id){
 }
 
 bool I2C_NewTransaction(uint8_t id, i2c_transaction_t* trans){
-	// i2c_loading[id] = true;
+	if (trans->mode == I2C_READ_MODE){ trans->count++; }
 	bool b = FIFO_PushToBuffer(i2c_fifo[id], trans);
 	if (!b && FIFO_GetBufferLength(i2c_fifo[id]) == 1 && I2C_state[id] == I2C_IDLE){
-		// i2c_loading[id] = false;
 		I2C_start_transaction(id);
 	}
-	// i2c_loading[id] = false;
 	return b;
 }
 
@@ -263,13 +266,14 @@ bool I2C_fsm(uint8_t id){
 		}
 		break;
 
+#ifdef I2C_SET_FAKE_READ
 	case I2C_FAKE_READ:
 		i2c_ptr->C1 &= ~I2C_C1_TX_MASK;			// Set RX mode
 		i2c_ptr->C1 &= ~I2C_C1_TXAK_MASK;		// Send ACK
 		i2c_ptr->D;								// Discard read
-		i2c_curr_trans[id]->count++;
 		I2C_state[id] = I2C_READ;				// Next state: READ
 		break;
+#endif
 
 	case I2C_IDLE:
 		if (!i2c_curr_trans[id]->next_rsta && (i2c_ptr->C1 & I2C_C1_MST_MASK) == I2C_C1_MST_MASK){		// If not repeated start
@@ -292,6 +296,7 @@ void I2C_start_transaction(uint8_t id){
 	i2c_ptr->C1 |= I2C_C1_TX_MASK;				// TX mode
 	if (!i2c_curr_trans[id]->next_rsta){	// If new transaction:
 		FIFO_PullFromBuffer(i2c_fifo[id], i2c_curr_trans[id]);		// Get next transaction
+		// There's a minimum free time that must go by betweet STOP and START (See Section 3.8.8: https://www.nxp.com/docs/en/data-sheet/K64P144M120SF5.pdf)
 		while ((i2c_ptr->S & I2C_S_BUSY_MASK) == I2C_S_BUSY_MASK);
 		i2c_ptr->C1 |= I2C_C1_MST_MASK;			// Start
 	} else{									// If a repeated start follows:
@@ -299,7 +304,12 @@ void I2C_start_transaction(uint8_t id){
 		i2c_ptr->C1 |= I2C_C1_RSTA_MASK;		// Repeated start
 	}
 	i2c_ptr->D = (i2c_curr_trans[id]->address << 1) | i2c_curr_trans[id]->mode;				// Write address
+#ifdef I2C_SET_FAKE_READ
 	I2C_state[id] = (i2c_curr_trans[id]->mode == I2C_READ) ? I2C_FAKE_READ : I2C_WRITE;		// Set next state
+#else
+	I2C_state[id] = (i2c_curr_trans[id]->mode == I2C_READ) ? I2C_READ : I2C_WRITE;		// Set next state
+#endif
+
 }
 
 void I2C_reset(uint8_t id){
