@@ -22,7 +22,7 @@
 /******************* PINS ********************/
 
 #define I2C_DEVELOPMENT_MODE
-// #define I2C_SET_FAKE_READ
+#define I2C_SET_FAKE_READ
 // TODO: Tener 3 modos según el futuro uso:
 //		- Sin fake read
 //		- Con fake read
@@ -255,7 +255,7 @@ bool I2C_fsm(uint8_t id){
 			}
 		} else {									// If count is 0 -> Done reading:
 			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;			// Stop
-			*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;		// Read data
+			//*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;		// Read data
 			i2c_ptr->C1 |= I2C_C1_TX_MASK;				// Clear RX mode
 			I2C_state[id] = I2C_IDLE;
 			if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
