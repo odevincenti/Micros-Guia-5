@@ -183,6 +183,14 @@ bool I2C_NewTransaction(uint8_t id, i2c_transaction_t* trans){
 	return b;
 }
 
+bool I2C_IsBusFree(uint8_t id){
+	if (FIFO_IsBufferEmpty(i2c_fifo[id]) && I2C_state[id] == I2C_IDLE){
+		return true;
+	} else {
+		return false;
+	}
+}
+
 bool I2C_IsIDTaken(uint8_t id){
 	return I2C_init[id];
 }

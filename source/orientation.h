@@ -52,6 +52,10 @@ bool orientation_Config();
 
 void calibrateOrientation(offset_t * orientation_offset);
 
+void orientation_Start();
+
+bool isOrientationReady();
+
 uint16_t getRoll();
 
 uint16_t getPitch();

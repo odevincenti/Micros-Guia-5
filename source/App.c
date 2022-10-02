@@ -42,9 +42,13 @@ void App_Run (void)
 		i++;
 	}
 
+	//if (isOrientationReady()){
+		//orientation_Start();
+	//}
+
 	if(!(i % 5000)){
 
-		print_axis_data();
+		//print_axis_data();
 		// printf("Roll: %i\n", getRoll());
 		// printf("Pitch: %i\n", getPitch());
 
