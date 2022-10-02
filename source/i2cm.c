@@ -71,7 +71,7 @@ enum {I2C_WRITE, I2C_READ, I2C_FAKE_READ, I2C_IDLE};
  * FUNCTION PROTOTYPES FOR PRIVATE FUNCTIONS WITH FILE LEVEL SCOPE
  ******************************************************************************/
 void I2C_ISR(uint8_t id);
-bool I2C_fsm(uint8_t id);
+void I2C_fsm(uint8_t id);
 void I2C_start_transaction(uint8_t id);
 bool I2C_push_transaction(uint8_t id, i2c_transaction_t* trans);
 i2c_transaction_t* I2C_pull_transaction(uint8_t id);
@@ -207,9 +207,8 @@ void I2C_ISR(uint8_t id){
 	// if ((i2c_ptr->S & I2C_S_IICIF_MASK) == I2C_S_IICIF_MASK){		// If interrupt flag on:
 		
 		if ((i2c_ptr->S & I2C_S_TCF_MASK) == I2C_S_TCF_MASK){
-			if (!I2C_fsm(id)){		// Go to FSM
-				i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
-			}
+			I2C_fsm(id);		// Go to FSM
+			i2c_ptr->S |= I2C_S_IICIF_MASK;		// Disable interrupt flag
 		
 		} else if ((i2c_ptr->S & I2C_S_ARBL_MASK) == I2C_S_ARBL_MASK){
 			i2c_ptr->S |= I2C_S_ARBL_MASK;		// Disable interrupt flag
@@ -225,7 +224,7 @@ void I2C_ISR(uint8_t id){
 	// }
 }
 
-bool I2C_fsm(uint8_t id){
+void I2C_fsm(uint8_t id){
 
 	I2C_Type* i2c_ptr = I2C_PTRS[id];
 
