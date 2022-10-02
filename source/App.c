@@ -11,9 +11,6 @@
 #include "board.h"
 #include "gpio.h"
 #include "i2cm.h"
-#include "MK64F12.h"
-#include "hardware.h"
-#include "FXOS8700CQ.h"
 
 /*******************************************************************************
  * CONSTANT AND MACRO DEFINITIONS USING #DEFINE
@@ -31,15 +28,15 @@ typedef struct {
 } axis_t;
 
 axis_t axis_data;
-uint8_t reg_address = FXOS8700CQ_OUT_X_MSB;
+uint8_t reg_address = 0x0;
 
 uint8_t who_am_i_reg = FXOS8700CQ_WHO_AM_I;
 uint8_t who_am_i;
 static int i;
 
-static uint8_t write[4] = "Hola";
+static uint8_t write = 0x0;
 static uint8_t read[3];
-static uint8_t read_rsta[2];
+static uint8_t read_rsta[7];
 
 void read_reg(uint8_t* reg_add, uint8_t* read_data, uint8_t bytes_to_read);
 
@@ -61,7 +58,7 @@ void App_Run (void)
 {
 	if(!(i)){
 
-//		read_reg(&who_am_i_reg, &who_am_i, 1);
+		read_reg(&who_am_i_reg, &who_am_i, 1);
 
 		//i2c_transaction_t trans_w = { .mode = I2C_WRITE_MODE, .address = 0x1D, .ptr = &write[0], .count = 4, .next_rsta = false};
 		//I2C_NewTransaction(I2C0_ID, &trans_w);
@@ -73,21 +70,24 @@ void App_Run (void)
 		// start
 		// 00111010 0
 
-		//i2c_transaction_t trans_w_rsta = { .mode = I2C_WRITE_MODE, .address = 0x1D, .ptr = &write[0], .count = 4, .next_rsta = true};
-		//I2C_NewTransaction(I2C0_ID, &trans_w_rsta);
+		// i2c_transaction_t trans_w_rsta = { .mode = I2C_WRITE_MODE, .address = 0x1D, .ptr = &write, .count = 1, .next_rsta = true};
+		// I2C_NewTransaction(I2C0_ID, &trans_w_rsta);
 
-		//i2c_transaction_t trans_r_rsta = { .mode = I2C_READ_MODE, .address = 0x1D, .ptr = &read_rsta[0], .count = 2, .next_rsta = false};
-		//I2C_NewTransaction(I2C0_ID, &trans_r_rsta);
+		// i2c_transaction_t trans_r_rsta = { .mode = I2C_READ_MODE, .address = 0x1D, .ptr = &read_rsta[0], .count = 7, .next_rsta = false};
+		// I2C_NewTransaction(I2C0_ID, &trans_r_rsta);
 
-		i2c_transaction_t trans_w_rsta = { .mode = I2C_WRITE_MODE, .address = 0x1D, .ptr = &reg_address, .count = 1, .next_rsta = true};
+		/*i2c_transaction_t trans_w_rsta = { .mode = I2C_WRITE_MODE, .address = 0x1D, .ptr = &reg_address, .count = 1, .next_rsta = true};
 		I2C_NewTransaction(I2C0_ID, &trans_w_rsta);
 
 		i2c_transaction_t trans_r_rsta = { .mode = I2C_READ_MODE, .address = 0x1D, .ptr = (uint8_t*)(&axis_data), .count = 6, .next_rsta = false};
-		I2C_NewTransaction(I2C0_ID, &trans_r_rsta);
+		I2C_NewTransaction(I2C0_ID, &trans_r_rsta);*/
+
+		i++;
 	}
 
-	if(!(i % 500)){
+	if(!(i % 5000)){
 
+		int a = who_am_i;
 		//printf("WHO AM I: %X\n", who_am_i);
 		// printf("X: %u\n", axis_data.x_axis);
 		// printf("Y: %u\n", axis_data.y_axis);
