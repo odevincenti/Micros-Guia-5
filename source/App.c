@@ -40,21 +40,21 @@ void App_Run (void)
 	if(!(i)){
 
 		orientation_Config();
+		while (!isOrientationReady());
+		//orientation_Start();
 
 		i++;
 	}
 
-	//if (isOrientationReady()){
-		//orientation_Start();
-	//}
+	if (isOrientationReady()){
+		orientation_Start();
+	}
 
-	if(isOrientationReady()){
-
-		print_regs();
-
+//		isOrientationReady();
+	if (!(i % 5000)){
+		//print_regs();
 		//read_reg(&reg_add, &read[0], 60);
-
-		//print_axis_data();
+		print_axis_data();
 		// printf("Roll: %i\n", getRoll());
 		// printf("Pitch: %i\n", getPitch());
 

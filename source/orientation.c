@@ -28,7 +28,7 @@
 #define I2C_ID				I2C0_ID
 #define FXOS8700CQ_ADD		0x1D
 #define FXOS8700CQ_ID		0xC7
-#define TIMER_MS			16
+#define TIMER_MS			300
 
 /*******************************************************************************
  * ENUMERATIONS AND STRUCTURES AND TYPEDEFS
@@ -175,13 +175,13 @@ bool orientation_Config(){
 		orientation_config.C1.reg_add = FXOS8700CQ_CTRL_REG1;
 		write_reg(&orientation_config.C1.reg_add, &orientation_config.clear.reg_data, 1);
 		
-		orientation_config.C2.reg_data = 0x40;
+		/*orientation_config.C2.reg_data = 0x40;
 		orientation_config.C2.reg_add = FXOS8700CQ_CTRL_REG2;
 		write_reg(&orientation_config.C2.reg_add, &orientation_config.C2.reg_data, 1);
 
 		while (!I2C_IsBusFree(I2C_ID));
 		
-		timerDelay(TIMER_MS2TICKS(1));
+		timerDelay(TIMER_MS2TICKS(1));*/
 
 		orientation_config.M_C1.reg_data = 0x1F;
 		orientation_config.M_C1.reg_add = FXOS8700CQ_M_CTRL_REG1;
@@ -191,6 +191,8 @@ bool orientation_Config(){
 		orientation_config.M_C2.reg_add = FXOS8700CQ_M_CTRL_REG2;
 		write_reg(&orientation_config.M_C2.reg_add, &orientation_config.M_C2.reg_data, 1);
 
+		while (!I2C_IsBusFree(I2C_ID));
+
 		orientation_config.xyz_cfg.reg_data = 0x01;
 		orientation_config.xyz_cfg.reg_add = FXOS8700CQ_XYZ_DATA_CFG;
 		write_reg(&orientation_config.xyz_cfg.reg_add, &orientation_config.xyz_cfg.reg_data, 1);
@@ -199,13 +201,18 @@ bool orientation_Config(){
 		write_reg(&orientation_config.C1.reg_add, &orientation_config.C1.reg_data, 1);
 
 		read_reg(&orientation_config.C1.reg_add, &reg_test.C1.reg_data, 1);
-		read_reg(&orientation_config.C2.reg_add, &reg_test.C2.reg_data, 1);
+		//read_reg(&orientation_config.C2.reg_add, &reg_test.C2.reg_data, 1);
 		read_reg(&orientation_config.M_C1.reg_add, &reg_test.M_C1.reg_data, 1);
 		read_reg(&orientation_config.M_C2.reg_add, &reg_test.M_C2.reg_data, 1);
 		read_reg(&orientation_config.xyz_cfg.reg_add, &reg_test.xyz_cfg.reg_data, 1);
 
+		while (!I2C_IsBusFree(I2C_ID));
+
+		/*write_reg(&orientation_config.xyz_cfg.reg_add, &orientation_config.xyz_cfg.reg_data, 1);
+		read_reg(&orientation_config.xyz_cfg.reg_add, &reg_test.xyz_cfg.reg_data, 1);*/
+		
 		//timerActivate(orientation_timer);
-		orientation_init = true;
+		//orientation_init = true;
 
 		return true;
 
@@ -365,11 +372,8 @@ void read_reg(uint8_t* reg_add, uint8_t* read_data, uint8_t bytes_to_read){
 }
 
 void write_reg(uint8_t* reg_add, uint8_t* write_data, uint8_t bytes_to_write){
-	i2c_transaction_t trans_w_rsta = { .mode = I2C_WRITE_MODE, .address = FXOS8700CQ_ADD, .ptr = reg_add, .count = 1, .next_rsta = true};
-	I2C_NewTransaction(I2C0_ID, &trans_w_rsta);
-
-	i2c_transaction_t trans_r_rsta = { .mode = I2C_WRITE_MODE, .address = FXOS8700CQ_ADD, .ptr = write_data, .count = bytes_to_write, .next_rsta = false};
-	I2C_NewTransaction(I2C0_ID, &trans_r_rsta);
+	i2c_transaction_t trans_w = { .mode = I2C_WRITE_MODE, .address = FXOS8700CQ_ADD, .ptr = reg_add, .count = bytes_to_write + 1, .next_rsta = false};
+	I2C_NewTransaction(I2C0_ID, &trans_w);
 }
 
 void print_axis_data(){
@@ -380,7 +384,7 @@ void print_axis_data(){
 
 void print_regs(){
 	printf("C1: %X\n", reg_test.C1.reg_data);
-	printf("C2: %X\n", reg_test.C2.reg_data);
+	//printf("C2: %X\n", reg_test.C2.reg_data);
 	printf("M_C1: %X\n", reg_test.M_C1.reg_data);
 	printf("M_C2: %X\n", reg_test.M_C2.reg_data);
 	printf("xyz_cfg: %X\n", reg_test.xyz_cfg.reg_data);
