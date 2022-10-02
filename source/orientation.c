@@ -42,6 +42,7 @@ typedef struct {
 typedef struct {
 	orientation_reg_t	who_am_i;
 	orientation_reg_t	C1;
+	orientation_reg_t	C2;
 	orientation_reg_t 	M_C1;
 	orientation_reg_t 	M_C2;
 	orientation_reg_t 	xyz_cfg;
@@ -124,15 +125,16 @@ void write_reg(uint8_t* reg_add, uint8_t* write_data, uint8_t bytes_to_write);
 static bool orientation_init = false;
 static tim_id_t orientation_timer;
 
-raw_axis_t raw_axis_data;
-axis_t axis_data;
-orientation_t angle_data;
-orientation_state_t angle_state;
-uint8_t axis_reg = FXOS8700CQ_STATUS;
+static raw_axis_t raw_axis_data;
+static axis_t axis_data;
+static orientation_t angle_data;
+static orientation_state_t angle_state;
+static uint8_t axis_reg = FXOS8700CQ_STATUS;
 // uint8_t magnet_reg = FXOS8700CQ_OUT_X_MSB;
-orientation_config_t orientation_config;
-uint8_t acc_offset_reg = FXOS8700CQ_OFF_X;
-uint8_t mag_offset_reg = FXOS8700CQ_OFF_X;
+static orientation_config_t orientation_config;
+static orientation_config_t reg_test;
+static uint8_t acc_offset_reg = FXOS8700CQ_OFF_X;
+static uint8_t mag_offset_reg = FXOS8700CQ_OFF_X;
 
 /*******************************************************************************
  *******************************************************************************
@@ -173,6 +175,14 @@ bool orientation_Config(){
 		orientation_config.C1.reg_add = FXOS8700CQ_CTRL_REG1;
 		write_reg(&orientation_config.C1.reg_add, &orientation_config.clear.reg_data, 1);
 		
+		orientation_config.C2.reg_data = 0x40;
+		orientation_config.C2.reg_add = FXOS8700CQ_CTRL_REG2;
+		write_reg(&orientation_config.C2.reg_add, &orientation_config.C2.reg_data, 1);
+
+		while (!I2C_IsBusFree(I2C_ID));
+		
+		timerDelay(TIMER_MS2TICKS(1));
+
 		orientation_config.M_C1.reg_data = 0x1F;
 		orientation_config.M_C1.reg_add = FXOS8700CQ_M_CTRL_REG1;
 		write_reg(&orientation_config.M_C1.reg_add, &orientation_config.M_C1.reg_data, 1);
@@ -188,7 +198,13 @@ bool orientation_Config(){
 		orientation_config.C1.reg_data = 0x0D;
 		write_reg(&orientation_config.C1.reg_add, &orientation_config.C1.reg_data, 1);
 
-		timerActivate(orientation_timer);
+		read_reg(&orientation_config.C1.reg_add, &reg_test.C1.reg_data, 1);
+		read_reg(&orientation_config.C2.reg_add, &reg_test.C2.reg_data, 1);
+		read_reg(&orientation_config.M_C1.reg_add, &reg_test.M_C1.reg_data, 1);
+		read_reg(&orientation_config.M_C2.reg_add, &reg_test.M_C2.reg_data, 1);
+		read_reg(&orientation_config.xyz_cfg.reg_add, &reg_test.xyz_cfg.reg_data, 1);
+
+		//timerActivate(orientation_timer);
 		orientation_init = true;
 
 		return true;
@@ -287,7 +303,7 @@ void orientation_ISR(){
 		// Update data
 		get_accel_magnet_data();
 #else
-		get_accel_data();
+		//get_accel_data();
 #endif
 /*	} else {
 
@@ -361,6 +377,15 @@ void print_axis_data(){
 	printf("Y: %d\n", axis_data.y_acc_axis);
 	printf("Z: %d\n", axis_data.z_acc_axis);
 }
+
+void print_regs(){
+	printf("C1: %X\n", reg_test.C1.reg_data);
+	printf("C2: %X\n", reg_test.C2.reg_data);
+	printf("M_C1: %X\n", reg_test.M_C1.reg_data);
+	printf("M_C2: %X\n", reg_test.M_C2.reg_data);
+	printf("xyz_cfg: %X\n", reg_test.xyz_cfg.reg_data);
+}
+
 
 /******************************************************************************/
 

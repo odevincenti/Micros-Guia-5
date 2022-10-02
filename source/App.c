@@ -18,6 +18,8 @@
  * FUNCTION PROTOTYPES FOR PRIVATE FUNCTIONS WITH FILE LEVEL SCOPE
  ******************************************************************************/
 static int i = 0;
+static uint8_t reg_add = 0x0;
+static uint8_t read[60];
 
 /*******************************************************************************
  *******************************************************************************
@@ -46,7 +48,11 @@ void App_Run (void)
 		//orientation_Start();
 	//}
 
-	if(!(i % 5000)){
+	if(isOrientationReady()){
+
+		print_regs();
+
+		//read_reg(&reg_add, &read[0], 60);
 
 		//print_axis_data();
 		// printf("Roll: %i\n", getRoll());

@@ -210,7 +210,7 @@ void timerDelay(ttick_t ticks){
 // Recorre el arreglo de timers y busca si expiró alguno
 void timer_isr(void){
     tim_id_t id_idx;
-    for (id_idx = timers_cant; id_idx; id_idx--){
+    for (id_idx = timers_cant - 1; id_idx < timers_cant; id_idx--){
         if (timers[id_idx].running && timers[id_idx].cnt){
             timers[id_idx].cnt--;
             if (!timers[id_idx].cnt){

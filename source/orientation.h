@@ -69,5 +69,7 @@ void refactor_data();
 
 void print_axis_data();
 
+void print_regs();
+
 
 #endif // _ORIENTATION_H_
