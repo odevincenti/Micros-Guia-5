@@ -175,7 +175,7 @@ void I2C_Init(uint8_t id){
 }
 
 bool I2C_NewTransaction(uint8_t id, i2c_transaction_t* trans){
-	if (trans->mode == I2C_READ_MODE){ trans->count++; }
+	//if (trans->mode == I2C_READ_MODE){ trans->count++; }
 	bool b = FIFO_PushToBuffer(i2c_fifo[id], trans);
 	if (!b && FIFO_GetBufferLength(i2c_fifo[id]) == 1 && I2C_state[id] == I2C_IDLE){
 		I2C_start_transaction(id);
@@ -254,15 +254,15 @@ void I2C_fsm(uint8_t id){
 	
 	case I2C_READ:
 		i2c_ptr->C1 &= ~I2C_C1_TX_MASK;					// Set RX mode
-		if (--i2c_curr_trans[id]->count){			// If this is not the last byte:
+		if (--i2c_curr_trans[id]->count == 1){
+			i2c_ptr->C1 |= I2C_C1_TXAK_MASK;			// Send NACK
+			*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;		// Read data
+		} else if (i2c_curr_trans[id]->count){			// If this is not the last byte:
 			i2c_ptr->C1 &= ~I2C_C1_TXAK_MASK;			// Send ACK
 			*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;		// Read data
-			if (i2c_curr_trans[id]->count == 1){
-				i2c_ptr->C1 |= I2C_C1_TXAK_MASK;		// Send NACK
-			}
 		} else {									// If count is 0 -> Done reading:
 			i2c_ptr->C1 &= ~I2C_C1_MST_MASK;			// Stop
-			//*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;		// Read data
+			*i2c_curr_trans[id]->ptr++ = i2c_ptr->D;		// Read data
 			i2c_ptr->C1 |= I2C_C1_TX_MASK;				// Clear RX mode
 			I2C_state[id] = I2C_IDLE;
 			if (!FIFO_IsBufferEmpty(i2c_fifo[id])){
@@ -274,8 +274,12 @@ void I2C_fsm(uint8_t id){
 #ifdef I2C_SET_FAKE_READ
 	case I2C_FAKE_READ:
 		i2c_ptr->C1 &= ~I2C_C1_TX_MASK;			// Set RX mode
-		i2c_ptr->C1 &= ~I2C_C1_TXAK_MASK;		// Send ACK
-		i2c_ptr->D;								// Discard read
+		if (i2c_curr_trans[id]->count == 1){
+			i2c_ptr->C1 |= I2C_C1_TXAK_MASK;		// Send NACK
+		} else {
+			i2c_ptr->C1 &= ~I2C_C1_TXAK_MASK;		// Send ACK
+		}
+		i2c_ptr->D;		// First read
 		I2C_state[id] = I2C_READ;				// Next state: READ
 		break;
 #endif
