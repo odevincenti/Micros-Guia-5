@@ -28,7 +28,7 @@
 #define I2C_ID				I2C0_ID
 #define FXOS8700CQ_ADD		0x1D
 #define FXOS8700CQ_ID		0xC7
-#define TIMER_MS			300
+#define TIMER_MS			50
 
 /*******************************************************************************
  * ENUMERATIONS AND STRUCTURES AND TYPEDEFS
@@ -133,8 +133,6 @@ static uint8_t axis_reg = FXOS8700CQ_STATUS;
 // uint8_t magnet_reg = FXOS8700CQ_OUT_X_MSB;
 static orientation_config_t orientation_config;
 static orientation_config_t reg_test;
-static uint8_t acc_offset_reg = FXOS8700CQ_OFF_X;
-static uint8_t mag_offset_reg = FXOS8700CQ_OFF_X;
 
 /*******************************************************************************
  *******************************************************************************
@@ -255,11 +253,16 @@ void calibrateOrientation(offset_t* orientation_offset){
 #endif
 
 	// Set accelerometer offset
-	write_reg(&acc_offset_reg, (uint8_t*) orientation_offset, AXIS_N);
+	orientation_offset->acc_offset_reg = FXOS8700CQ_OFF_X;
+	write_reg(&orientation_offset->acc_offset_reg, (uint8_t*) &orientation_offset->acc_offset_reg, AXIS_N);
 
 #ifdef MAGNET
 	// Set magnetometer offset
-	write_reg(&mag_offset_reg, ((uint8_t*) orientation_offset) + 6, 6);
+	orientation_offset->mag_offset_reg = FXOS8700CQ_M_OFF_X_MSB;
+	write_reg(&orientation_offset->mag_offset_reg, (uint8_t*) &orientation_offset->mag_offset_reg, AXIS_N*2);
+
+	//read_reg((uint8_t*) &orientation_offset->mag_offset_reg, (uint8_t*) orientation_offset->mag_offset_reg, AXIS_N*2);
+	read_reg(&orientation_offset->acc_offset_reg, (uint8_t*) &orientation_offset->x_acc_axis, AXIS_N);
 
 	// Restore M_C3 config
 	write_reg(&orientation_config.M_C3.reg_add, &orientation_config.M_C3.reg_data, 1);
@@ -269,14 +272,56 @@ void calibrateOrientation(offset_t* orientation_offset){
 	orientation_config.C1.reg_data = 0x0D;
 	write_reg(&orientation_config.C1.reg_add, &orientation_config.C1.reg_data, 1);
 
+	while (!I2C_IsBusFree(I2C_ID));
+
+}
+
+bool orientation_Compute(){
+
+	uint16_t roll = atan2(axis_data.y_acc_axis, axis_data.z_acc_axis);
+	if (roll - angle_data.roll > ANGLE_THRESHOLD){
+		angle_data.roll = roll;
+		angle_state.roll_state = true;
+	}
+
+	uint16_t pitch = atan2(-axis_data.x_acc_axis, axis_data.y_acc_axis*sin(angle_data.roll) + axis_data.z_acc_axis*cos(angle_data.roll));
+	if (pitch - angle_data.pitch > ANGLE_THRESHOLD){
+		angle_data.pitch = pitch;
+		angle_state.pitch_state = true;
+	}
+
+	angle_data.yaw = 0;
+	angle_state.yaw_state = false;
+
+	return angle_state.roll_state || angle_state.pitch_state || angle_state.yaw_state;
+	
+}
+
+bool getRollState(){
+	return angle_state.roll_state;
+}
+
+bool getPitchState(){
+	return angle_state.pitch_state;
+}
+
+bool getYawState(){
+	return angle_state.yaw_state;
 }
 
 uint16_t getRoll(){
+	angle_state.roll_state = false;
 	return angle_data.roll;
 }
 
 uint16_t getPitch(){
+	angle_state.pitch_state = false;
 	return angle_data.pitch;
+}
+
+uint16_t getYaw(){
+	angle_state.yaw_state = false;
+	return angle_data.yaw;
 }
 
 /*******************************************************************************
@@ -287,40 +332,15 @@ uint16_t getPitch(){
 
 void orientation_ISR(){
 	
-	//static int h = 0;
-
-		// Retrieve and refactor data
-		refactor_data();
-
-		// uint16_t roll = atan2(axis_data.y_acc_axis, axis_data.z_acc_axis);
-		// if (roll - angle_data.roll > ANGLE_THRESHOLD){
-		// 	angle_data.roll = roll;
-		// 	angle_state.roll_state = true;
-		// }
-
-		// uint16_t pitch = atan2(-axis_data.x_acc_axis, axis_data.y_acc_axis*sin(angle_data.roll) + axis_data.z_acc_axis*cos(angle_data.roll));
-		// if (pitch - angle_data.pitch > ANGLE_THRESHOLD){
-		// 	angle_data.pitch = pitch;
-		// 	angle_state.pitch_state = true;
-		// }
-
-	//if (h%2){
+	// Retrieve and refactor data
+	refactor_data();
 
 #ifdef MAGNET
-		// Update data
-		get_accel_magnet_data();
+	// Update data
+	get_accel_magnet_data();
 #else
-		//get_accel_data();
+	//get_accel_data();
 #endif
-/*	} else {
-
-		orientation_config.who_am_i.reg_add = FXOS8700CQ_WHO_AM_I;
-		orientation_config.who_am_i.reg_data = 0x0;
-		read_reg(&orientation_config.who_am_i.reg_add, &orientation_config.who_am_i.reg_data, 1);
-
-	}
-
-		h++;*/
 
 }
 
@@ -340,9 +360,9 @@ void refactor_data(){
 	}
 	
 #ifdef MAGNET
-	//for (i = 0; i < AXIS_N; raw_ptr += 2, axis_ptr++){
-	//	*axis_ptr = (*raw_ptr << BYTE_SIZE) | *(raw_ptr + 1);
-	//}
+	for (i = 0; i < AXIS_N; raw_ptr += 2, axis_ptr++){
+		*axis_ptr = (*raw_ptr << BYTE_SIZE) | *(raw_ptr + 1);
+	}
 #endif
 
 }
@@ -380,6 +400,9 @@ void print_axis_data(){
 	printf("X: %d\n", axis_data.x_acc_axis);
 	printf("Y: %d\n", axis_data.y_acc_axis);
 	printf("Z: %d\n", axis_data.z_acc_axis);
+	printf("MX: %d\n", axis_data.x_acc_axis);
+	printf("MY: %d\n", axis_data.y_acc_axis);
+	printf("MZ: %d\n", axis_data.z_acc_axis);
 }
 
 void print_regs(){
@@ -389,7 +412,6 @@ void print_regs(){
 	printf("M_C2: %X\n", reg_test.M_C2.reg_data);
 	printf("xyz_cfg: %X\n", reg_test.xyz_cfg.reg_data);
 }
-
 
 /******************************************************************************/
 

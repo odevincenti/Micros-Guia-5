@@ -28,14 +28,16 @@
  ******************************************************************************/
 
 typedef struct {
+	uint8_t acc_offset_reg;
 // Accelerometer axis
 	int8_t	x_acc_axis;
 	int8_t	y_acc_axis;
 	int8_t	z_acc_axis;
 // Magnetometer axis
-	int8_t	x_mag_axis;
-	int8_t	y_mag_axis;
-	int8_t	z_mag_axis;
+	uint8_t mag_offset_reg;
+	int16_t	x_mag_axis;
+	int16_t	y_mag_axis;
+	int16_t	z_mag_axis;
 } offset_t;
 
 /*******************************************************************************
@@ -56,9 +58,19 @@ void orientation_Start();
 
 bool isOrientationReady();
 
+bool orientation_Compute();
+
+bool getRollState();
+
+bool getPitchState();
+
+bool getYawState();
+
 uint16_t getRoll();
 
 uint16_t getPitch();
+
+uint16_t getYaw();
 
 /*******************************************************************************
  ******************************************************************************/
